@@ -1,4 +1,4 @@
-import { Database, History, Settings, Skull, User, Users } from "lucide-react";
+import { Database, Egg, History, Settings, Skull, User, Users } from "lucide-react";
 import QuickAccessCard from "@/components/layout/QuickAccessCard";
 import { usePermissions } from "@/features/auth/permissions";
 
@@ -8,6 +8,7 @@ export default function DashboardPage() {
   return (
     <div className="grid gap-3 grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       <QuickAccessCard to="/mortalidad" icon={Skull} label="Mortalidad" description="Registrar aves muertas" />
+      <QuickAccessCard to="/produccion" icon={Egg} label="Producción" description="Registrar producción de huevo" accent="success" />
       <QuickAccessCard to="/historial" icon={History} label="Historial" description="Ver registros capturados" accent="info" />
       <QuickAccessCard to="/cuenta" icon={User} label="Mi cuenta" description="Perfil y contraseña" />
       {(can("users.manage") || can("roles.manage")) && (

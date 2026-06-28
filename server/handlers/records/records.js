@@ -42,20 +42,37 @@ async function enrichRecord(data) {
   const edad = placement ? getAgeWeeks(placement.fechaAlojamiento, data.fecha) : Number(data.edad || 0);
   const etapa = data.etapa || getEtapa(edad);
 
-  return {
-    module: "mortalidad",
+  const base = {
+    module: data.module,
     fecha: dateOnlyToLocalDate(data.fecha) || new Date(data.fecha),
     granjaId: toObjectId(data.granjaId),
     galponId: toObjectId(data.galponId),
     loteId: toObjectId(data.loteId),
     etapa,
     edad,
+    meta: data.meta || {},
+  };
+
+  if (data.module === "produccion") {
+    return {
+      ...base,
+      data: {
+        registros: (data.data?.registros || []).map((r) => ({
+          categoria: r.categoria,
+          cantidad: Number(r.cantidad),
+        })),
+        raza: data.data?.raza || "",
+      },
+    };
+  }
+
+  return {
+    ...base,
     data: {
       mortalidad: Number(data.data?.mortalidad ?? data.mortalidad ?? 0),
       sexo: data.data?.sexo || data.sexo || "mixto",
       causaMuerte: data.data?.causaMuerte || data.causaMuerte || "",
     },
-    meta: data.meta || {},
   };
 }
 

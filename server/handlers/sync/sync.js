@@ -5,6 +5,7 @@ import { requireAuth } from "../../middleware/auth.js";
 import { success } from "../../utils/response.js";
 import { getAgeWeeks, getEtapa, dateOnlyToLocalDate } from "../../utils/dates.js";
 import { validateMortalidadRecord } from "../../validators/mortalidad.js";
+import { validateProduccionRecord } from "../../validators/produccion.js";
 
 function toObjectId(value) {
   if (!value) return value;
@@ -24,7 +25,7 @@ async function enrichRecord(record) {
   const edad = placement ? getAgeWeeks(placement.fechaAlojamiento, record.fecha) : Number(record.edad || 0);
   const etapa = record.etapa || getEtapa(edad);
 
-  return {
+  const base = {
     clientId: record.clientId,
     module: record.module,
     fecha: dateOnlyToLocalDate(record.fecha) || new Date(record.fecha),
@@ -33,12 +34,29 @@ async function enrichRecord(record) {
     loteId: toObjectId(record.loteId),
     etapa,
     edad,
+    meta: record.meta || {},
+  };
+
+  if (record.module === "produccion") {
+    return {
+      ...base,
+      data: {
+        registros: (record.data?.registros || []).map((r) => ({
+          categoria: r.categoria,
+          cantidad: Number(r.cantidad),
+        })),
+        raza: record.data?.raza || "",
+      },
+    };
+  }
+
+  return {
+    ...base,
     data: {
       mortalidad: Number(record.data.mortalidad),
       sexo: record.data.sexo,
       causaMuerte: record.data.causaMuerte || "",
     },
-    meta: record.meta || {},
   };
 }
 
@@ -56,7 +74,8 @@ export default async function syncHandler(req, res) {
   const failed = [];
 
   for (const record of records) {
-    const validationError = validateMortalidadRecord(record, user);
+    const validate = record.module === "produccion" ? validateProduccionRecord : validateMortalidadRecord;
+    const validationError = validate(record, user);
 
     if (validationError) {
       failed.push({ clientId: record?.clientId, message: validationError });

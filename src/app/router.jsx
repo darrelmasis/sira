@@ -5,6 +5,7 @@ import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import DashboardPage from "@/pages/DashboardPage";
 import HistorialPage from "@/pages/HistorialPage";
 import MortalidadPage from "@/pages/MortalidadPage";
+import ProduccionPage from "@/pages/ProduccionPage";
 import AccountPage from "@/pages/AccountPage";
 import AppSettingsPage from "@/pages/AppSettingsPage";
 import CatalogsPage from "@/pages/CatalogsPage";
@@ -41,6 +42,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <DashboardPage /> },
       { path: "mortalidad", element: <MortalidadPage /> },
+      { path: "produccion", element: <ProduccionPage /> },
       { path: "historial", element: <HistorialPage /> },
       { path: "cuenta", element: <AccountPage /> },
       {

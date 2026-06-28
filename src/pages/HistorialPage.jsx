@@ -14,7 +14,7 @@ import {
   FormDescription,
   toast,
 } from "quickit-ui";
-import { ClipboardList, Cloud, CloudOff, Eye, RefreshCw, Save } from "lucide-react";
+import { ClipboardList, Cloud, CloudOff, Egg, Eye, RefreshCw, Save, Skull } from "lucide-react";
 import NumberStepper from "@/components/NumberStepper";
 import UserAvatar from "@/components/UserAvatar";
 import TableSkeleton from "@/components/feedback/TableSkeleton";
@@ -59,6 +59,7 @@ export default function HistorialPage() {
   const [dateRange, setDateRange] = useState({ from: null, to: null });
   const [datePreset, setDatePreset] = useState("all");
   const [farmFilter, setFarmFilter] = useState("");
+  const [moduleFilter, setModuleFilter] = useState("all");
   const [viewRecord, setViewRecord] = useState(null);
   const [editRecord, setEditRecord] = useState(null);
   const [editForm, setEditForm] = useState(null);
@@ -69,7 +70,7 @@ export default function HistorialPage() {
     const auditName = row.audit?.updatedByName || row.audit?.createdByName || "";
     return {
       id: row.clientId || row.id,
-      module: "mortalidad",
+      module: row.module || "mortalidad",
       syncStatus: "synced",
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
@@ -78,11 +79,8 @@ export default function HistorialPage() {
         granjaId: row.granjaId,
         galponId: row.galponId,
         loteId: row.loteId,
-        data: {
-          mortalidad: row.data?.mortalidad ?? 0,
-          sexo: row.data?.sexo || "mixto",
-          causaMuerte: row.data?.causaMuerte || "",
-        },
+        edad: row.edad,
+        data: row.data || {},
         meta: row.meta || {},
         audit: {
           createdAt: row.audit?.clientCreatedAt || row.createdAt,
@@ -151,6 +149,7 @@ export default function HistorialPage() {
 
   const filteredRecords = useMemo(() => {
     return records.filter((r) => {
+      if (moduleFilter !== "all" && r.module !== moduleFilter) return false;
       if (dateRange.from && dateRange.to) {
         const d = extractDateOnly(r.payload.fecha);
         if (!d || d < extractDateOnly(dateRange.from) || d > extractDateOnly(dateRange.to)) return false;
@@ -158,7 +157,7 @@ export default function HistorialPage() {
       if (farmFilter && normalizeId(r.payload.granjaId) !== normalizeId(farmFilter)) return false;
       return true;
     });
-  }, [records, dateRange, farmFilter]);
+  }, [records, dateRange, farmFilter, moduleFilter]);
 
   const catalogMaps = useMemo(
     () => ({
@@ -286,6 +285,8 @@ export default function HistorialPage() {
   );
 
   const columns = useMemo(() => {
+    const isProduccion = moduleFilter === "produccion";
+
     const cols = [
       {
         key: "fecha",
@@ -315,18 +316,45 @@ export default function HistorialPage() {
           );
         },
       },
-      {
-        key: "mortalidad",
-        header: "Mortalidad",
-        sortable: true,
-        align: "right",
-        cellClassName: "min-w-24 whitespace-nowrap",
-        render: (row) => (
-          <span className="font-semibold tabular-nums">
-            {row.payload.data?.mortalidad ?? 0}
-          </span>
-        ),
-      },
+      ...(isProduccion
+        ? [
+            {
+              key: "edad",
+              header: "Edad",
+              sortable: true,
+              align: "right",
+              cellClassName: "min-w-16 whitespace-nowrap",
+              render: (row) => (
+                <span className="tabular-nums">{row.payload.edad ?? "—"} sem</span>
+              ),
+            },
+            {
+              key: "total",
+              header: "Total",
+              sortable: true,
+              align: "right",
+              cellClassName: "min-w-20 whitespace-nowrap",
+              render: (row) => {
+                const registros = row.payload.data?.registros || [];
+                const total = registros.reduce((s, r) => s + Number(r.cantidad || 0), 0);
+                return <span className="font-semibold tabular-nums">{total}</span>;
+              },
+            },
+          ]
+        : [
+            {
+              key: "mortalidad",
+              header: "Mortalidad",
+              sortable: true,
+              align: "right",
+              cellClassName: "min-w-24 whitespace-nowrap",
+              render: (row) => (
+                <span className="font-semibold tabular-nums">
+                  {row.payload.data?.mortalidad ?? 0}
+                </span>
+              ),
+            },
+          ]),
       {
         key: "syncStatus",
         header: "Estado",
@@ -400,7 +428,7 @@ export default function HistorialPage() {
     }
 
     return cols;
-  }, [catalogMaps, canView, canEdit, canDelete, hasActions]);
+  }, [catalogMaps, canView, canEdit, canDelete, hasActions, moduleFilter]);
 
   function updateEditField(field, value) {
     setEditForm((current) => {
@@ -460,6 +488,40 @@ export default function HistorialPage() {
         >
           Ayer
         </Button>
+
+        <div className="mx-1 h-6 w-px bg-zinc-200 dark:bg-zinc-700" />
+
+        <Button
+          type="button"
+          size="sm"
+          variant={moduleFilter === "all" ? "solid" : "outline"}
+          color={moduleFilter === "all" ? "brand" : "neutral"}
+          onClick={() => setModuleFilter("all")}
+        >
+          Todas
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant={moduleFilter === "mortalidad" ? "solid" : "outline"}
+          color={moduleFilter === "mortalidad" ? "brand" : "neutral"}
+          onClick={() => setModuleFilter("mortalidad")}
+        >
+          <Skull aria-hidden="true" className="size-4" />
+          Mortalidad
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant={moduleFilter === "produccion" ? "solid" : "outline"}
+          color={moduleFilter === "produccion" ? "brand" : "neutral"}
+          onClick={() => setModuleFilter("produccion")}
+        >
+          <Egg aria-hidden="true" className="size-4" />
+          Producción
+        </Button>
+
+        <div className="mx-1 h-6 w-px bg-zinc-200 dark:bg-zinc-700" />
 
         <div className="w-48 shrink-0">
           <DatePicker

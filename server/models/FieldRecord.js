@@ -11,7 +11,7 @@ const FieldRecordSchema = new mongoose.Schema(
     module: {
       type: String,
       required: true,
-      enum: ["mortalidad"],
+      enum: ["mortalidad", "produccion"],
       index: true,
     },
     fecha: {
