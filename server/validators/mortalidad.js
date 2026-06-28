@@ -24,7 +24,7 @@ export function validateMortalidadRecord(record, user) {
     return "Mortalidad debe ser cero o mayor";
   }
 
-  if (!["macho", "hembra", "mixto"].includes(record.data.sexo)) {
+  if (!["macho", "hembra"].includes(record.data.sexo)) {
     return "Sexo inválido";
   }
 

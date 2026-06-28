@@ -181,7 +181,7 @@ export default function HistorialPage() {
       galponId: p.galponId || "",
       loteId: p.loteId || "",
       mortalidad: String(p.data?.mortalidad ?? "0"),
-      sexo: p.data?.sexo || "mixto",
+      sexo: p.data?.sexo || "macho",
       causaMuerte: p.data?.causaMuerte || "",
     });
     setEditError("");
@@ -615,7 +615,7 @@ export default function HistorialPage() {
                   </div>
                   <div>
                     <Label>Sexo</Label>
-                    <p className="text-sm capitalize">{p.data?.sexo || "mixto"}</p>
+                    <p className="text-sm capitalize">{p.data?.sexo || "macho"}</p>
                   </div>
                   <div>
                     <Label>Estado de sincronización</Label>
@@ -675,6 +675,7 @@ export default function HistorialPage() {
 
             <Modal.Body className="space-y-4">
               {editError && <Alert color="danger" title={editError} />}
+              <div tabIndex={-1} className="sr-only" />
 
               <section className="grid gap-4 md:grid-cols-2">
                 <FormControl controlId="edit-fecha" required>
@@ -772,13 +773,12 @@ export default function HistorialPage() {
                   <Label>Sexo</Label>
                   <Select
                     id="edit-sexo"
-                    value={editForm?.sexo || "mixto"}
+                    value={editForm?.sexo || "macho"}
                     placeholder="Seleccionar sexo"
                     onValueChange={(value) => updateEditField("sexo", value)}
                   >
-                    <option value="mixto">Mixto</option>
-                    <option value="hembra">Hembra</option>
                     <option value="macho">Macho</option>
+                    <option value="hembra">Hembra</option>
                   </Select>
                 </FormControl>
               </section>

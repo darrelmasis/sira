@@ -52,7 +52,7 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <EmptyStateTitle className="text-2xl">SIRA</EmptyStateTitle>
-            <FormDescription>Sistema de Información para Registro Avícola</FormDescription>
+            <FormDescription>Sistema Integral para Registro Avícola</FormDescription>
           </div>
 
           <FormControl controlId="username" required>

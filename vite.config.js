@@ -57,12 +57,13 @@ export default defineConfig({
     siraApiPlugin(),
     svgr(),
     VitePWA({
-      injectRegister: false,
+      registerType: "autoUpdate",
+      injectRegister: "auto",
       includeAssets: ["favicon.svg"],
       manifest: {
         name: "SIRA - Registro Avícola",
         short_name: "SIRA",
-        description: "Sistema de Información para Registro Avícola con soporte offline",
+        description: "Sistema Integral para Registro Avícola",
         theme_color: "#3f9f5a",
         background_color: "#09090b",
         display: "standalone",

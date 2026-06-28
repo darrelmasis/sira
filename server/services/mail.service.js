@@ -53,7 +53,7 @@ export async function sendPasswordResetEmail({ to, token }) {
         <p style="color: #666; font-size: 14px;">Este enlace expira en 60 minutos.</p>
         <p style="color: #666; font-size: 14px;">Si no solicitaste este cambio, ignora este mensaje.</p>
         <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-        <p style="color: #999; font-size: 12px;">SIRA — Sistema de Información para Registro Avícola</p>
+        <p style="color: #999; font-size: 12px;">SIRA — Sistema Integral para Registro Avícola</p>
       </div>
     `,
   });

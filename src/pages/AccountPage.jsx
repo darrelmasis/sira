@@ -1,21 +1,27 @@
 import { useEffect, useState } from "react";
-import { Alert, Badge, Button, FormControl, Input, Label, toast } from "quickit-ui";
-import { KeyRound, LogOut } from "lucide-react";
+import { Alert, Badge, Button, FormControl, Input, Label, Tabs, toast, useQuickitThemeController } from "quickit-ui";
+import { KeyRound, LogOut, Monitor, Moon, Sun } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import AvatarPicker from "@/features/profile/AvatarPicker";
 import UserAvatar from "@/components/UserAvatar";
-import PageSection from "@/components/layout/PageSection";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useFarmAccess } from "@/features/auth/farmAccess";
 import { usePermissions } from "@/features/auth/permissions";
 import { getLocalCatalogs } from "@/features/catalogs/catalogStore";
+
+const themeOptions = [
+  { value: "system", label: "Sistema", icon: Monitor },
+  { value: "light", label: "Claro", icon: Sun },
+  { value: "dark", label: "Oscuro", icon: Moon },
+];
 
 export default function AccountPage() {
   const navigate = useNavigate();
   const { user, logout, accessToken } = useAuth();
   const { roleLabel } = usePermissions();
   const { hasGlobalFarmAccess, assignedFarmIds } = useFarmAccess();
+  const { theme, setTheme } = useQuickitThemeController();
   const [assignedFarmNames, setAssignedFarmNames] = useState([]);
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -87,100 +93,146 @@ export default function AccountPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <PageSection title="Perfil">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
-          <UserAvatar user={user} size="xl" className="shrink-0" />
-          <div className="min-w-0 flex-1 space-y-3">
-            <div className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
-              <div>
-                <span className="text-zinc-500">Nombre</span>
-                <p className="font-medium">{user?.nombre || "N/D"}</p>
-              </div>
-              <div>
-                <span className="text-zinc-500">Usuario</span>
-                <p className="font-medium">@{user?.username || "N/D"}</p>
-              </div>
-              <div>
-                <span className="text-zinc-500">Email</span>
-                <p className="font-medium">{user?.email || "N/D"}</p>
-              </div>
-              <div>
-                <span className="text-zinc-500">Rol</span>
-                <p>
-                  <Badge variant="soft">{roleLabel}</Badge>
-                </p>
+    <div className="mx-auto max-w-2xl">
+      <Tabs defaultValue="cuenta">
+        <Tabs.List>
+          <Tabs.Trigger value="cuenta">Cuenta</Tabs.Trigger>
+          <Tabs.Trigger value="tema">Tema</Tabs.Trigger>
+          <Tabs.Trigger value="seguridad">Seguridad</Tabs.Trigger>
+        </Tabs.List>
+
+        <Tabs.Content value="cuenta" className="mt-6 space-y-6">
+          <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+              <UserAvatar user={user} size="xl" className="shrink-0" />
+              <div className="grid min-w-0 flex-1 gap-4 sm:grid-cols-2">
+                <FormControl controlId="account-nombre">
+                  <Label>Nombre</Label>
+                  <Input id="account-nombre" value={user?.nombre || "N/D"} readOnly />
+                </FormControl>
+
+                <FormControl controlId="account-username">
+                  <Label>Usuario</Label>
+                  <Input id="account-username" value={`@${user?.username || "N/D"}`} readOnly />
+                </FormControl>
+
+                <FormControl controlId="account-email">
+                  <Label>Email</Label>
+                  <Input id="account-email" value={user?.email || "N/D"} readOnly />
+                </FormControl>
+
+                <FormControl controlId="account-rol">
+                  <Label>Rol</Label>
+                  <Input id="account-rol" value={roleLabel} readOnly />
+                </FormControl>
               </div>
             </div>
-            <div>
-              <span className="text-sm text-zinc-500">Granjas asignadas</span>
-              <div className="mt-1 flex flex-wrap gap-1">
-                {assignedFarmNames.map((name) => (
-                  <Badge key={name} color="brand" variant="soft">
-                    {name}
-                  </Badge>
-                ))}
-              </div>
+          </section>
+
+          <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5">
+            <h2 className="mb-3 text-sm font-semibold">Granjas asignadas</h2>
+            <div className="flex flex-wrap gap-1">
+              {assignedFarmNames.map((name) => (
+                <Badge key={name} color="brand" variant="soft">
+                  {name}
+                </Badge>
+              ))}
             </div>
-          </div>
-        </div>
-      </PageSection>
+          </section>
 
-      <PageSection title="Avatar">
-        <AvatarPicker />
-      </PageSection>
+          <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5">
+            <h2 className="mb-3 text-sm font-semibold">Avatar</h2>
+            <AvatarPicker />
+          </section>
+        </Tabs.Content>
 
-      <PageSection title="Seguridad" description="Actualiza tu contraseña de acceso.">
-        <form onSubmit={handleChangePassword} className="space-y-4">
-          {passwordError && <Alert color="danger" title={passwordError} />}
+        <Tabs.Content value="tema" className="mt-6">
+          <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5">
+            <h2 className="mb-3 text-sm font-semibold">Apariencia</h2>
+            <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
+              Selecciona el tema de la aplicación.
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {themeOptions.map((option) => {
+                const Icon = option.icon;
+                return (
+                  <Button
+                    key={option.value}
+                    type="button"
+                    variant={theme === option.value ? "solid" : "outline"}
+                    color="neutral"
+                    onClick={() => setTheme(option.value)}
+                  >
+                    <Icon aria-hidden="true" className="size-4" />
+                    {option.label}
+                  </Button>
+                );
+              })}
+            </div>
+          </section>
+        </Tabs.Content>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <FormControl controlId="currentPassword" required>
-              <Label>Contraseña actual</Label>
-              <Input
-                type="password"
-                passwordToggle
-                placeholder="Contraseña actual"
-                value={passwordForm.currentPassword}
-                onChange={(event) => setPasswordForm({ ...passwordForm, currentPassword: event.target.value })}
-              />
-            </FormControl>
+        <Tabs.Content value="seguridad" className="mt-6 space-y-6">
+          <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5">
+            <h2 className="mb-1 text-sm font-semibold">Cambiar contraseña</h2>
+            <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
+              Actualiza tu contraseña de acceso.
+            </p>
 
-            <FormControl controlId="newPassword" required>
-              <Label>Nueva contraseña</Label>
-              <Input
-                type="password"
-                passwordToggle
-                placeholder="Mínimo 8 caracteres"
-                value={passwordForm.newPassword}
-                onChange={(event) => setPasswordForm({ ...passwordForm, newPassword: event.target.value })}
-              />
-            </FormControl>
-          </div>
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              {passwordError && <Alert color="danger" title={passwordError} />}
 
-          <FormControl controlId="confirmPassword" required>
-            <Label>Confirmar contraseña</Label>
-            <Input
-              type="password"
-              passwordToggle
-              placeholder="Repite la nueva contraseña"
-              value={passwordForm.confirmPassword}
-              onChange={(event) => setPasswordForm({ ...passwordForm, confirmPassword: event.target.value })}
-            />
-          </FormControl>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormControl controlId="currentPassword" required>
+                  <Label>Contraseña actual</Label>
+                  <Input
+                    type="password"
+                    passwordToggle
+                    placeholder="Contraseña actual"
+                    value={passwordForm.currentPassword}
+                    onChange={(event) => setPasswordForm({ ...passwordForm, currentPassword: event.target.value })}
+                  />
+                </FormControl>
 
-          <div className="flex flex-wrap gap-3">
-            <Button type="submit" color="brand" loading={changingPassword} loadingText="Guardando...">
-              <KeyRound aria-hidden="true" className="size-4" />
-              Cambiar contraseña
-            </Button>
+                <FormControl controlId="newPassword" required>
+                  <Label>Nueva contraseña</Label>
+                  <Input
+                    type="password"
+                    passwordToggle
+                    placeholder="Mínimo 8 caracteres"
+                    value={passwordForm.newPassword}
+                    onChange={(event) => setPasswordForm({ ...passwordForm, newPassword: event.target.value })}
+                  />
+                </FormControl>
+              </div>
+
+              <FormControl controlId="confirmPassword" required>
+                <Label>Confirmar contraseña</Label>
+                <Input
+                  type="password"
+                  passwordToggle
+                  placeholder="Repite la nueva contraseña"
+                  value={passwordForm.confirmPassword}
+                  onChange={(event) => setPasswordForm({ ...passwordForm, confirmPassword: event.target.value })}
+                />
+              </FormControl>
+
+              <Button type="submit" color="brand" loading={changingPassword} loadingText="Guardando...">
+                <KeyRound aria-hidden="true" className="size-4" />
+                Cambiar contraseña
+              </Button>
+            </form>
+          </section>
+
+          <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5">
+            <h2 className="mb-3 text-sm font-semibold">Sesión</h2>
             <Button type="button" color="danger" variant="outline" onClick={handleLogout}>
               <LogOut aria-hidden="true" className="size-4" />
               Cerrar sesión
             </Button>
-          </div>
-        </form>
-      </PageSection>
+          </section>
+        </Tabs.Content>
+      </Tabs>
     </div>
   );
 }

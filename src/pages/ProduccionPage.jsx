@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Alert, Button, FormControl, Input, Label, Select, toast, DatePicker } from "quickit-ui";
+import { Alert, Button, FormControl, FormMessage, Input, Label, Select, toast, DatePicker } from "quickit-ui";
 import { MapPin, FileText, Egg, Save } from "lucide-react";
 import FormSectionSkeleton from "@/components/feedback/FormSectionSkeleton";
 import NumberStepper from "@/components/ui/NumberStepper";
@@ -49,6 +49,7 @@ export default function ProduccionPage() {
   const [catalogs, setCatalogs] = useState({ farms: [], sheds: [], lots: [], placements: [] });
   const [loadingCatalogs, setLoadingCatalogs] = useState(true);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
   const selectedLot = useMemo(() => {
@@ -132,6 +133,12 @@ export default function ProduccionPage() {
       }
       return next;
     });
+    setFieldErrors((current) => {
+      if (!current[field]) return current;
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
   }
 
   function updateRegistro(categoriaId, cantidad) {
@@ -144,25 +151,35 @@ export default function ProduccionPage() {
       setError("No tienes permiso para crear registros.");
       return;
     }
+    setError("");
 
-    if (!values.granjaId.trim()) { setError("La granja es obligatoria."); return; }
-    if (!values.galponId.trim()) { setError("El galpón es obligatorio."); return; }
-    if (!values.loteId.trim()) { setError("El lote es obligatorio."); return; }
+    const errors = {};
+    if (!values.granjaId.trim()) errors.granjaId = "La granja es obligatoria.";
+    if (!values.galponId.trim()) errors.galponId = "El galpón es obligatorio.";
+    if (!values.loteId.trim()) errors.loteId = "El lote es obligatorio.";
 
     const dateError = validateRecordDate(values.fecha);
-    if (dateError) { setError(dateError); return; }
-
-    if (!canAccessFarm(values.granjaId)) {
-      setError("No tienes acceso para registrar en esta granja.");
-      return;
-    }
+    if (dateError) errors.fecha = dateError;
 
     const registrosData = EGG_CATEGORIES
       .map((c) => ({ categoria: c.id, cantidad: Math.floor(Number(registros[c.id] || 0)) }))
       .filter((r) => r.cantidad > 0);
 
     if (registrosData.length === 0) {
-      setError("Debes registrar al menos una categoría con cantidad mayor a cero.");
+      errors.registros = "Debes registrar al menos una categoría con cantidad mayor a cero.";
+    }
+
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      requestAnimationFrame(() => {
+        const el = document.querySelector('[aria-invalid="true"]');
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+      return;
+    }
+
+    if (!canAccessFarm(values.granjaId)) {
+      setError("No tienes acceso para registrar en esta granja.");
       return;
     }
 
@@ -236,7 +253,7 @@ export default function ProduccionPage() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto max-w-3xl space-y-4 pb-20">
+    <form onSubmit={handleSubmit} className="mx-auto max-w-3xl space-y-4">
       {error && <Alert color="danger" title={error} />}
 
       {!can("records.editAnyDate") && (
@@ -251,11 +268,11 @@ export default function ProduccionPage() {
         <SectionHeader icon={MapPin} title="Ubicación" />
 
         <div className="space-y-4">
-          <FormControl controlId="granjaId" required>
+          <FormControl controlId="granjaId" required invalid={!!fieldErrors.granjaId}>
             <Label>Granja</Label>
             {catalogs.farms.length > 0 ? (
               <Select id="granjaId" value={values.granjaId} placeholder="Seleccionar granja..." onValueChange={(value) => updateField("granjaId", value)}>
-                <option value="">Seleccionar granja...</option>
+                <option key="placeholder-granja" value="">Seleccionar granja...</option>
                 {catalogs.farms.map((farm) => (
                   <option key={farm.id} value={farm.id}>{farm.nombre}</option>
                 ))}
@@ -263,14 +280,15 @@ export default function ProduccionPage() {
             ) : (
               <Input id="granjaId" placeholder="ID de granja" value={values.granjaId} onChange={(event) => updateField("granjaId", event.target.value)} />
             )}
+            <FormMessage>{fieldErrors.granjaId}</FormMessage>
           </FormControl>
 
           <div className="grid grid-cols-2 gap-4">
-            <FormControl controlId="galponId" required>
+            <FormControl controlId="galponId" required invalid={!!fieldErrors.galponId}>
               <Label>Galpón</Label>
               {filteredSheds.length > 0 ? (
                 <Select id="galponId" value={values.galponId} placeholder="Seleccionar..." onValueChange={(value) => updateField("galponId", value)}>
-                  <option value="">Seleccionar...</option>
+                  <option key="placeholder-galpon" value="">Seleccionar...</option>
                   {filteredSheds.map((shed) => (
                     <option key={shed.id} value={shed.id}>{shed.nombre}</option>
                   ))}
@@ -278,13 +296,14 @@ export default function ProduccionPage() {
               ) : (
                 <Input id="galponId" placeholder="ID de galpón" value={values.galponId} onChange={(event) => updateField("galponId", event.target.value)} />
               )}
+              <FormMessage>{fieldErrors.galponId}</FormMessage>
             </FormControl>
 
-            <FormControl controlId="loteId" required>
+            <FormControl controlId="loteId" required invalid={!!fieldErrors.loteId}>
               <Label>Lote</Label>
               {filteredLots.length > 0 ? (
                 <Select id="loteId" value={values.loteId} placeholder="Seleccionar..." onValueChange={(value) => updateField("loteId", value)}>
-                  <option value="">Seleccionar...</option>
+                  <option key="placeholder-lote" value="">Seleccionar...</option>
                   {filteredLots.map((lot) => (
                     <option key={lot.id} value={lot.id}>{lot.codigo}</option>
                   ))}
@@ -292,6 +311,7 @@ export default function ProduccionPage() {
               ) : (
                 <Input id="loteId" placeholder="Código de lote" value={values.loteId} onChange={(event) => updateField("loteId", event.target.value)} />
               )}
+              <FormMessage>{fieldErrors.loteId}</FormMessage>
             </FormControl>
           </div>
         </div>
@@ -301,7 +321,7 @@ export default function ProduccionPage() {
         <SectionHeader icon={FileText} title="Detalles del Registro" />
 
         <div className="space-y-4">
-          <FormControl controlId="fecha" required>
+          <FormControl controlId="fecha" required invalid={!!fieldErrors.fecha}>
             <Label>Fecha</Label>
             <DatePicker
               id="fecha"
@@ -311,6 +331,7 @@ export default function ProduccionPage() {
               maxDate={dateConstraints.maxDate}
               onChange={(date) => updateField("fecha", formatDateInput(date))}
             />
+            <FormMessage>{fieldErrors.fecha}</FormMessage>
           </FormControl>
 
           <div className="grid grid-cols-2 gap-4">
@@ -327,7 +348,7 @@ export default function ProduccionPage() {
         </div>
       </section>
 
-      <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5">
+      <FormControl controlId="registros" invalid={!!fieldErrors.registros} className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5">
         <SectionHeader icon={Egg} title="Registro de producción" />
 
         <div className="space-y-5">
@@ -351,22 +372,25 @@ export default function ProduccionPage() {
               </div>
             </div>
           ))}
+          <FormMessage>{fieldErrors.registros}</FormMessage>
+        </div>
+      </FormControl>
+
+      <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5">
+        <SectionHeader icon={Egg} title="Totales" />
+        <div className="flex flex-wrap gap-3 text-sm">
+          <span className="font-semibold text-brand-600">I: {totales.incubable}</span>
+          <span className="font-semibold text-sky-600">C: {totales.comercial}</span>
+          <span className="font-semibold text-zinc-500">D: {totales.descarte}</span>
+          <span className="font-bold">Total: {totales.total}</span>
         </div>
       </section>
 
-      <div className="fixed bottom-0 left-0 right-0 z-10 border-t border-zinc-200/80 bg-white px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] dark:border-zinc-800 dark:bg-zinc-950 dark:shadow-[0_-4px_12px_rgba(0,0,0,0.2)]">
-        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-2">
-          <div className="flex gap-3 text-xs sm:text-sm">
-            <span className="font-semibold text-brand-600">I: {totales.incubable}</span>
-            <span className="font-semibold text-sky-600">C: {totales.comercial}</span>
-            <span className="font-semibold text-zinc-500">D: {totales.descarte}</span>
-            <span className="font-bold">Total: {totales.total}</span>
-          </div>
-          <Button type="submit" color="brand" loading={saving} loadingText="Guardando..." className="w-full sm:w-auto">
-            <Save aria-hidden="true" className="size-4" />
-            Guardar registro
-          </Button>
-        </div>
+      <div className="flex justify-end">
+        <Button type="submit" color="brand" loading={saving} loadingText="Guardando...">
+          <Save aria-hidden="true" className="size-4" />
+          Guardar registro
+        </Button>
       </div>
     </form>
   );

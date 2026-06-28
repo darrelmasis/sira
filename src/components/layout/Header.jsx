@@ -66,7 +66,7 @@ export default function Header({ user, can, roleLabel, logout, summary }) {
             <Dropdown.Content align="end" className="min-w-56">
               <div className="border-b border-zinc-200 px-3 py-3 dark:border-zinc-800">
                 <div className="flex items-center gap-3">
-                  <UserAvatar user={user} size="md" />
+                  <UserAvatar user={user} size="lg" />
                   <div className="min-w-0">
                     <div className="truncate text-sm font-semibold">
                       {user?.nombre || user?.username}
@@ -75,10 +75,10 @@ export default function Header({ user, can, roleLabel, logout, summary }) {
                       @{user?.username}
                     </div>
                   </div>
-                </div>
                 <Badge color="neutral" variant="soft" className="mt-2 uppercase">
                   {roleLabel}
                 </Badge>
+                </div>
               </div>
               <Dropdown.Item onClick={() => navigate("/cuenta")}>
                 <User aria-hidden="true" className="size-4" />

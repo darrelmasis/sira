@@ -70,7 +70,7 @@ async function enrichRecord(data) {
     ...base,
     data: {
       mortalidad: Number(data.data?.mortalidad ?? data.mortalidad ?? 0),
-      sexo: data.data?.sexo || data.sexo || "mixto",
+      sexo: data.data?.sexo || data.sexo || "macho",
       causaMuerte: data.data?.causaMuerte || data.causaMuerte || "",
     },
   };

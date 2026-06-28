@@ -4,13 +4,14 @@ import {
   Alert,
   Button,
   FormControl,
+  FormMessage,
   Input,
   Label,
   Select,
   Textarea,
   toast,
   DatePicker,
-  cn,
+  useBreakpoint,
 } from "quickit-ui";
 import { MapPin, FileText, BarChart3, Save } from "lucide-react";
 import NumberStepper from "@/components/ui/NumberStepper";
@@ -30,47 +31,48 @@ const initialForm = {
   galponId: "",
   loteId: "",
   mortalidad: "0",
-  sexo: "mixto",
+  sexo: "macho",
   causaMuerte: "",
 };
 
 const sexoOptions = [
-  { value: "mixto", label: "Mixto" },
   { value: "macho", label: "Macho" },
   { value: "hembra", label: "Hembra" },
 ];
 
 function validateMortalidad(values, validateRecordDate) {
+  const errors = {};
   const dateError = validateRecordDate(values.fecha);
-  if (dateError) return dateError;
-  if (!values.granjaId.trim()) return "La granja es obligatoria.";
-  if (!values.galponId.trim()) return "El galpón es obligatorio.";
-  if (!values.loteId.trim()) return "El lote es obligatorio.";
-  if (values.mortalidad === "" || Number(values.mortalidad) < 0)
-    return "La mortalidad debe ser cero o mayor.";
-  return "";
+  if (dateError) errors.fecha = dateError;
+  if (!values.granjaId.trim()) errors.granjaId = "La granja es obligatoria.";
+  if (!values.galponId.trim()) errors.galponId = "El galpón es obligatorio.";
+  if (!values.loteId.trim()) errors.loteId = "El lote es obligatorio.";
+  if (values.mortalidad === "" || Number(values.mortalidad) < 1)
+    errors.mortalidad = "La mortalidad debe ser mayor a cero.";
+  return errors;
 }
 
 function validateCatalogRefs(values, catalogs) {
+  const errors = {};
   const farm = catalogs.farms.find(
     (item) => normalizeId(item.id) === normalizeId(values.granjaId),
   );
   if (!farm)
-    return "La granja seleccionada no está disponible. Actualiza catálogos en Configuración del sistema.";
+    errors.granjaId = "La granja seleccionada no está disponible. Actualiza catálogos.";
 
   const shed = catalogs.sheds.find(
     (item) => normalizeId(item.id) === normalizeId(values.galponId),
   );
   if (!shed)
-    return "El galpón seleccionado no está disponible. Actualiza catálogos en Configuración del sistema.";
+    errors.galponId = "El galpón seleccionado no está disponible. Actualiza catálogos.";
 
   const lot = catalogs.lots.find(
     (item) => normalizeId(item.id) === normalizeId(values.loteId),
   );
   if (!lot)
-    return "El lote seleccionado no está disponible. Actualiza catálogos en Configuración del sistema.";
+    errors.loteId = "El lote seleccionado no está disponible. Actualiza catálogos.";
 
-  return "";
+  return errors;
 }
 
 function SectionHeader({ icon: Icon, title }) {
@@ -92,7 +94,9 @@ export default function MortalidadPage() {
   const [catalogs, setCatalogs] = useState({ farms: [], sheds: [], lots: [] });
   const [loadingCatalogs, setLoadingCatalogs] = useState(true);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const { isMobile } = useBreakpoint();
 
   const filteredSheds = useMemo(
     () =>
@@ -148,6 +152,12 @@ export default function MortalidadPage() {
       }
       return next;
     });
+    setFieldErrors((current) => {
+      if (!current[field]) return current;
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
   }
 
   async function handleSubmit(event) {
@@ -156,14 +166,17 @@ export default function MortalidadPage() {
       setError("No tienes permiso para crear registros.");
       return;
     }
+    setError("");
 
-    const validationError = validateMortalidad(values, validateRecordDate);
-    setError(validationError);
-    if (validationError) return;
-
-    const catalogError = validateCatalogRefs(values, catalogs);
-    if (catalogError) {
-      setError(catalogError);
+    const errors = validateMortalidad(values, validateRecordDate);
+    const catalogErrors = validateCatalogRefs(values, catalogs);
+    const merged = { ...errors, ...catalogErrors };
+    setFieldErrors(merged);
+    if (Object.keys(merged).length > 0) {
+      requestAnimationFrame(() => {
+        const el = document.querySelector('[aria-invalid="true"]');
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
       return;
     }
 
@@ -247,7 +260,7 @@ export default function MortalidadPage() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto max-w-3xl space-y-4 pb-20">
+    <form onSubmit={handleSubmit} className="mx-auto max-w-3xl space-y-4">
       {error && <Alert color="danger" title={error} />}
 
       {!can("records.editAnyDate") && (
@@ -266,7 +279,7 @@ export default function MortalidadPage() {
         <SectionHeader icon={MapPin} title="Ubicación" />
 
         <div className="space-y-4">
-          <FormControl controlId="granjaId" required>
+          <FormControl controlId="granjaId" required invalid={!!fieldErrors.granjaId}>
             <Label>Granja</Label>
             {catalogs.farms.length > 0 ? (
               <Select
@@ -275,7 +288,7 @@ export default function MortalidadPage() {
                 placeholder="Seleccionar granja..."
                 onValueChange={(value) => updateField("granjaId", value)}
               >
-                <option value="">Seleccionar granja...</option>
+                <option key="placeholder-granja" value="">Seleccionar granja...</option>
                 {catalogs.farms.map((farm) => (
                   <option key={farm.id} value={farm.id}>
                     {farm.nombre}
@@ -290,10 +303,11 @@ export default function MortalidadPage() {
                 onChange={(event) => updateField("granjaId", event.target.value)}
               />
             )}
+            <FormMessage>{fieldErrors.granjaId}</FormMessage>
           </FormControl>
 
           <div className="grid grid-cols-2 gap-4">
-            <FormControl controlId="galponId" required>
+            <FormControl controlId="galponId" required invalid={!!fieldErrors.galponId}>
               <Label>Galpón</Label>
               {filteredSheds.length > 0 ? (
                 <Select
@@ -302,7 +316,7 @@ export default function MortalidadPage() {
                   placeholder="Seleccionar..."
                   onValueChange={(value) => updateField("galponId", value)}
                 >
-                  <option value="">Seleccionar...</option>
+                  <option key="placeholder-galpon" value="">Seleccionar...</option>
                   {filteredSheds.map((shed) => (
                     <option key={shed.id} value={shed.id}>
                       {shed.nombre}
@@ -319,9 +333,10 @@ export default function MortalidadPage() {
                   }
                 />
               )}
+              <FormMessage>{fieldErrors.galponId}</FormMessage>
             </FormControl>
 
-            <FormControl controlId="loteId" required>
+            <FormControl controlId="loteId" required invalid={!!fieldErrors.loteId}>
               <Label>Lote</Label>
               {filteredLots.length > 0 ? (
                 <Select
@@ -330,7 +345,7 @@ export default function MortalidadPage() {
                   placeholder="Seleccionar..."
                   onValueChange={(value) => updateField("loteId", value)}
                 >
-                  <option value="">Seleccionar...</option>
+                  <option key="placeholder-lote" value="">Seleccionar...</option>
                   {filteredLots.map((lot) => (
                     <option key={lot.id} value={lot.id}>
                       {lot.codigo}
@@ -347,6 +362,7 @@ export default function MortalidadPage() {
                   }
                 />
               )}
+              <FormMessage>{fieldErrors.loteId}</FormMessage>
             </FormControl>
           </div>
         </div>
@@ -356,7 +372,7 @@ export default function MortalidadPage() {
         <SectionHeader icon={FileText} title="Detalles del Registro" />
 
         <div className="space-y-4">
-          <FormControl controlId="fecha" required>
+          <FormControl controlId="fecha" required invalid={!!fieldErrors.fecha}>
             <Label>Fecha</Label>
             <DatePicker
               id="fecha"
@@ -366,25 +382,23 @@ export default function MortalidadPage() {
               maxDate={dateConstraints.maxDate}
               onChange={(date) => updateField("fecha", formatDateInput(date))}
             />
+            <FormMessage>{fieldErrors.fecha}</FormMessage>
           </FormControl>
 
           <div>
             <Label>Sexo *</Label>
-            <div className="mt-1.5 grid grid-cols-3 gap-1 rounded-lg border border-zinc-200 p-1 dark:border-zinc-700">
+            <div className="mt-1.5 flex gap-2">
               {sexoOptions.map((opt) => (
-                <button
+                <Button
                   key={opt.value}
                   type="button"
+                  variant={values.sexo === opt.value ? "solid" : "ghost"}
+                  color="brand"
                   onClick={() => updateField("sexo", opt.value)}
-                  className={cn(
-                    "rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                    values.sexo === opt.value
-                      ? "bg-brand-500 text-white shadow-sm"
-                      : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800",
-                  )}
+                  className="flex-1"
                 >
                   {opt.label}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -395,7 +409,7 @@ export default function MortalidadPage() {
         <SectionHeader icon={BarChart3} title="Métricas" />
 
         <div className="space-y-4">
-          <FormControl controlId="mortalidad" required>
+          <FormControl controlId="mortalidad" required invalid={!!fieldErrors.mortalidad}>
             <Label>Cantidad de aves muertas</Label>
             <NumberStepper
               id="mortalidad"
@@ -403,6 +417,7 @@ export default function MortalidadPage() {
               min={0}
               onChange={(value) => updateField("mortalidad", value)}
             />
+            <FormMessage>{fieldErrors.mortalidad}</FormMessage>
           </FormControl>
 
           <FormControl controlId="causaMuerte">
@@ -420,13 +435,13 @@ export default function MortalidadPage() {
         </div>
       </section>
 
-      <div className="fixed bottom-0 left-0 right-0 z-10 border-t border-zinc-200/80 bg-white px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] dark:border-zinc-800 dark:bg-zinc-950 dark:shadow-[0_-4px_12px_rgba(0,0,0,0.2)]">
+      <div className="flex justify-end">
         <Button
           type="submit"
           color="brand"
           loading={saving}
           loadingText="Guardando..."
-          className="mx-auto w-full max-w-3xl"
+          fullWidth={isMobile}
         >
           <Save aria-hidden="true" className="size-4" />
           Guardar registro

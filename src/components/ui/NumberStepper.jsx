@@ -20,8 +20,12 @@ export default function NumberStepper({
     onChange(String(clamped));
   }
 
+  function vibrate() {
+    if (navigator.vibrate) navigator.vibrate(10);
+  }
+
   return (
-    <div className={cn("flex items-center gap-1", className)}>
+    <div className={cn("flex items-center gap-3", className)}>
       <div className="flex-1 min-w-0">
         <Input
           id={id}
@@ -51,7 +55,7 @@ export default function NumberStepper({
         aria-label="Disminuir"
         activeMotion={true}
         disabled={disabled || numericValue <= min}
-        onClick={() => setValue(numericValue - step)}
+        onClick={() => { vibrate(); setValue(numericValue - step); }}
         className={disabled ? "!opacity-100" : null}
       >
         <Minus aria-hidden="true" className="size-4" />
@@ -64,7 +68,7 @@ export default function NumberStepper({
         activeMotion={true}
         aria-label="Aumentar"
         disabled={disabled || numericValue >= max}
-        onClick={() => setValue(numericValue + step)}
+        onClick={() => { vibrate(); setValue(numericValue + step); }}
       >
         <Plus aria-hidden="true" className="size-4" />
       </Button>
