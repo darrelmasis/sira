@@ -4,7 +4,7 @@ import { catalogConfigs } from "@/features/catalogs/catalogConfigs";
 
 export default function CatalogsPage() {
   return (
-    <Tabs defaultValue="granjas" color="primary">
+    <Tabs defaultValue="granjas" color="brand">
       <Tabs.List>
         <Tabs.Trigger value="granjas">Granjas</Tabs.Trigger>
         <Tabs.Trigger value="galpones">Galpones</Tabs.Trigger>
@@ -12,20 +12,18 @@ export default function CatalogsPage() {
         <Tabs.Trigger value="alojamientos">Alojamientos</Tabs.Trigger>
       </Tabs.List>
 
-      <div className="mt-4">
-        <Tabs.Content value="granjas">
-          <CatalogCrudPanel config={catalogConfigs.granjas} />
-        </Tabs.Content>
-        <Tabs.Content value="galpones">
-          <CatalogCrudPanel config={catalogConfigs.galpones} />
-        </Tabs.Content>
-        <Tabs.Content value="lotes">
-          <CatalogCrudPanel config={catalogConfigs.lotes} />
-        </Tabs.Content>
-        <Tabs.Content value="alojamientos">
-          <CatalogCrudPanel config={catalogConfigs.alojamientos} />
-        </Tabs.Content>
-      </div>
+      <Tabs.Content value="granjas" className="pt-4">
+        <CatalogCrudPanel config={catalogConfigs.granjas} />
+      </Tabs.Content>
+      <Tabs.Content value="galpones" className="pt-4">
+        <CatalogCrudPanel config={catalogConfigs.galpones} />
+      </Tabs.Content>
+      <Tabs.Content value="lotes" className="pt-4">
+        <CatalogCrudPanel config={catalogConfigs.lotes} />
+      </Tabs.Content>
+      <Tabs.Content value="alojamientos" className="pt-4">
+        <CatalogCrudPanel config={catalogConfigs.alojamientos} />
+      </Tabs.Content>
     </Tabs>
   );
 }

@@ -1,4 +1,4 @@
-import { Button, DataTable, Modal } from "quickit-ui";
+import { Button, DataTable, FormDescription, Modal } from "quickit-ui";
 import { Plus } from "lucide-react";
 import TableSkeleton from "@/components/feedback/TableSkeleton";
 import ListEmptyState from "@/components/feedback/ListEmptyState";
@@ -11,8 +11,8 @@ export default function CatalogCrudPanel({ config }) {
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Button onClick={crud.openCreate} size="sm" color="brand" disabled={!crud.canCreate}>
-          <Plus className="size-4" /> {crud.createLabel}
+        <Button type="button" onClick={crud.openCreate} size="md" color="brand" disabled={!crud.canCreate}>
+          <Plus aria-hidden="true" className="size-4" /> {crud.createLabel}
         </Button>
       </div>
 
@@ -26,7 +26,7 @@ export default function CatalogCrudPanel({ config }) {
           actions={
             crud.empty.actionsLabel ? (
               <Button type="button" color="brand" onClick={crud.openCreate}>
-                <Plus className="size-4" /> {crud.empty.actionsLabel}
+                <Plus aria-hidden="true" className="size-4" /> {crud.empty.actionsLabel}
               </Button>
             ) : undefined
           }
@@ -46,6 +46,7 @@ export default function CatalogCrudPanel({ config }) {
           <form onSubmit={crud.handleSubmit}>
             <Modal.Header>
               <Modal.Title>{crud.editing ? crud.modalTitles.edit : crud.modalTitles.create}</Modal.Title>
+              <FormDescription>Completa los campos obligatorios para {crud.editing ? "actualizar" : "crear"} el registro.</FormDescription>
             </Modal.Header>
             <Modal.Body className="space-y-4">
               {crud.renderForm({ form: crud.form, setForm: crud.setForm, meta: crud.meta })}

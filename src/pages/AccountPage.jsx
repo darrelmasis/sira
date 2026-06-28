@@ -4,6 +4,7 @@ import { KeyRound, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import AvatarPicker from "@/features/profile/AvatarPicker";
+import UserAvatar from "@/components/UserAvatar";
 import PageSection from "@/components/layout/PageSection";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useFarmAccess } from "@/features/auth/farmAccess";
@@ -86,21 +87,41 @@ export default function AccountPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
+    <div className="mx-auto max-w-2xl space-y-6">
       <PageSection title="Perfil">
-        <div className="grid gap-2 text-sm sm:grid-cols-2">
-          <div>Nombre: {user?.nombre || "N/D"}</div>
-          <div>Usuario: @{user?.username || "N/D"}</div>
-          <div className="flex items-center gap-2">
-            Rol: <Badge variant="soft">{roleLabel}</Badge>
-          </div>
-          <div className="sm:col-span-2">
-            Granjas:{" "}
-            {assignedFarmNames.map((name) => (
-              <Badge key={name} color="brand" variant="soft" className="mr-1 mt-1">
-                {name}
-              </Badge>
-            ))}
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+          <UserAvatar user={user} size="xl" className="shrink-0" />
+          <div className="min-w-0 flex-1 space-y-3">
+            <div className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+              <div>
+                <span className="text-zinc-500">Nombre</span>
+                <p className="font-medium">{user?.nombre || "N/D"}</p>
+              </div>
+              <div>
+                <span className="text-zinc-500">Usuario</span>
+                <p className="font-medium">@{user?.username || "N/D"}</p>
+              </div>
+              <div>
+                <span className="text-zinc-500">Email</span>
+                <p className="font-medium">{user?.email || "N/D"}</p>
+              </div>
+              <div>
+                <span className="text-zinc-500">Rol</span>
+                <p>
+                  <Badge variant="soft">{roleLabel}</Badge>
+                </p>
+              </div>
+            </div>
+            <div>
+              <span className="text-sm text-zinc-500">Granjas asignadas</span>
+              <div className="mt-1 flex flex-wrap gap-1">
+                {assignedFarmNames.map((name) => (
+                  <Badge key={name} color="brand" variant="soft">
+                    {name}
+                  </Badge>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </PageSection>
@@ -109,31 +130,33 @@ export default function AccountPage() {
         <AvatarPicker />
       </PageSection>
 
-      <PageSection title="Contraseña" description="Actualiza tu contraseña de acceso.">
+      <PageSection title="Seguridad" description="Actualiza tu contraseña de acceso.">
         <form onSubmit={handleChangePassword} className="space-y-4">
           {passwordError && <Alert color="danger" title={passwordError} />}
 
-          <FormControl controlId="currentPassword" required>
-            <Label>Contraseña actual</Label>
-            <Input
-              type="password"
-              passwordToggle
-              placeholder="Contraseña actual"
-              value={passwordForm.currentPassword}
-              onChange={(event) => setPasswordForm({ ...passwordForm, currentPassword: event.target.value })}
-            />
-          </FormControl>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormControl controlId="currentPassword" required>
+              <Label>Contraseña actual</Label>
+              <Input
+                type="password"
+                passwordToggle
+                placeholder="Contraseña actual"
+                value={passwordForm.currentPassword}
+                onChange={(event) => setPasswordForm({ ...passwordForm, currentPassword: event.target.value })}
+              />
+            </FormControl>
 
-          <FormControl controlId="newPassword" required>
-            <Label>Nueva contraseña</Label>
-            <Input
-              type="password"
-              passwordToggle
-              placeholder="Mínimo 8 caracteres"
-              value={passwordForm.newPassword}
-              onChange={(event) => setPasswordForm({ ...passwordForm, newPassword: event.target.value })}
-            />
-          </FormControl>
+            <FormControl controlId="newPassword" required>
+              <Label>Nueva contraseña</Label>
+              <Input
+                type="password"
+                passwordToggle
+                placeholder="Mínimo 8 caracteres"
+                value={passwordForm.newPassword}
+                onChange={(event) => setPasswordForm({ ...passwordForm, newPassword: event.target.value })}
+              />
+            </FormControl>
+          </div>
 
           <FormControl controlId="confirmPassword" required>
             <Label>Confirmar contraseña</Label>
@@ -146,17 +169,18 @@ export default function AccountPage() {
             />
           </FormControl>
 
-          <Button type="submit" color="brand" loading={changingPassword} loadingText="Guardando...">
-            <KeyRound aria-hidden="true" className="size-4" />
-            Cambiar contraseña
-          </Button>
+          <div className="flex flex-wrap gap-3">
+            <Button type="submit" color="brand" loading={changingPassword} loadingText="Guardando...">
+              <KeyRound aria-hidden="true" className="size-4" />
+              Cambiar contraseña
+            </Button>
+            <Button type="button" color="danger" variant="outline" onClick={handleLogout}>
+              <LogOut aria-hidden="true" className="size-4" />
+              Cerrar sesión
+            </Button>
+          </div>
         </form>
       </PageSection>
-
-      <Button type="button" color="danger" variant="outline" onClick={handleLogout}>
-        <LogOut aria-hidden="true" className="size-4" />
-        Cerrar sesión
-      </Button>
     </div>
   );
 }

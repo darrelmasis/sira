@@ -263,8 +263,8 @@ export default function AppShell() {
         </div>
       </header>
 
-      <div className="mx-auto flex max-w-7xl">
-        <aside className="sticky top-14.5 hidden max-h-[calc(100vh-3.5rem)] w-56 shrink-0 self-start overflow-y-auto border-r border-zinc-200 px-3 py-5 dark:border-zinc-800 lg:block">
+      <div className="mx-auto flex min-h-[calc(100vh-3.5rem)] max-w-7xl">
+        <aside className="sticky top-14.5 hidden h-[calc(100vh-3.5rem)] w-56 shrink-0 overflow-y-auto border-r border-zinc-200 px-3 py-5 dark:border-zinc-800 lg:block">
           <SidebarNav can={can} />
         </aside>
 

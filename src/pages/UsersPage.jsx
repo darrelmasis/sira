@@ -253,7 +253,7 @@ export default function UsersPage() {
             {loadError && <Alert color="danger" title={loadError} />}
 
             <div className="flex justify-end">
-              <Button type="button" color="brand" onClick={openCreate}>
+              <Button type="button" size="md" color="brand" onClick={openCreate}>
                 <UserPlus aria-hidden="true" className="size-4" />
                 Agregar usuario
               </Button>
