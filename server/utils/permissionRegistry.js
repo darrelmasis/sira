@@ -49,6 +49,18 @@ export async function ensurePermissionsLoaded() {
     await seedDefaultPermissions();
   } else {
     permissionsMap = buildMapFromRows(rows);
+    for (const [permission, defaultRoles] of Object.entries(DEFAULT_PERMISSIONS)) {
+      const currentRoles = permissionsMap[permission];
+      if (!currentRoles || currentRoles.length === 0) {
+        permissionsMap[permission] = [...defaultRoles];
+        for (const role of defaultRoles) {
+          await RolePermission.findOneAndUpdate(
+            { role },
+            { $addToSet: { permissions: permission } },
+          );
+        }
+      }
+    }
   }
 
   loaded = true;

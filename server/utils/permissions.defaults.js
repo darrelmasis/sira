@@ -10,6 +10,8 @@ export const ALL_ROLES = Object.values(ROLES);
 /** Catálogo de permisos disponibles en el sistema. */
 export const PERMISSION_CATALOG = {
   "records.create": "Registrar actividades de campo",
+  "records.edit": "Editar registros existentes",
+  "records.delete": "Eliminar registros",
   "records.editAnyDate": "Registrar con fechas distintas a hoy",
   "records.view": "Ver registros e historial",
   "catalogs.manage": "Gestionar catálogos",
@@ -22,6 +24,8 @@ export const PERMISSION_CATALOG = {
 
 export const DEFAULT_PERMISSIONS = {
   "records.create": [ROLES.DESARROLLADOR, ROLES.ADMIN, ROLES.SUPERVISOR, ROLES.OPERADOR],
+  "records.edit": [ROLES.DESARROLLADOR, ROLES.ADMIN],
+  "records.delete": [ROLES.DESARROLLADOR, ROLES.ADMIN],
   "records.editAnyDate": [ROLES.DESARROLLADOR, ROLES.ADMIN, ROLES.SUPERVISOR],
   "records.view": [ROLES.DESARROLLADOR, ROLES.ADMIN, ROLES.SUPERVISOR, ROLES.OPERADOR],
   "catalogs.manage": [ROLES.DESARROLLADOR, ROLES.ADMIN],
