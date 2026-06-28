@@ -9,7 +9,7 @@
   --color-brand-200: oklch(0.88 0.10 260);
   --color-brand-300: oklch(0.80 0.14 260);
   --color-brand-400: oklch(0.72 0.17 260);
-  --color-brand-500: oklch(0.64 0.19 260); /* tono principal */
+  --color-brand-500: oklch(0.64 0.19 260);
   --color-brand-600: oklch(0.56 0.18 260);
   --color-brand-700: oklch(0.48 0.15 260);
   --color-brand-800: oklch(0.40 0.12 260);
@@ -17,6 +17,15 @@
   --color-brand-950: oklch(0.24 0.07 260);
 }
 
+:root {
+  --sira-surface: white;
+  --sira-input-bg: var(--color-zinc-100);
+}
+
+html.dark {
+  --sira-surface: var(--color-zinc-900);
+  --sira-input-bg: var(--color-zinc-950);
+}
 
 html {
   background: var(--color-zinc-100);
@@ -43,4 +52,24 @@ input[type=number]::-webkit-outer-spin-button {
 
 input[type=number] {
   -moz-appearance: textfield;
+}
+
+/* Quickit-ui input/select overrides: match page background */
+[data-slot="input-shell"] input,
+[data-slot="input-shell"] textarea {
+  background-color: var(--sira-input-bg) !important;
+}
+
+[data-qi-dropdown-trigger] {
+  background-color: var(--sira-input-bg) !important;
+}
+
+/* Select trigger: button with aria-haspopup=listbox */
+button[aria-haspopup="listbox"] {
+  background-color: var(--sira-input-bg) !important;
+}
+
+/* DatePicker trigger: button inside datepicker */
+[data-slot="date-picker"] button[aria-haspopup] {
+  background-color: var(--sira-input-bg) !important;
 }

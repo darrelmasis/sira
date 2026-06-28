@@ -264,7 +264,7 @@ export default function ProduccionPage() {
         />
       )}
 
-      <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5">
+      <section className="rounded-xl border border-zinc-200/80 bg-[var(--sira-surface)] p-4 dark:border-zinc-800 sm:p-5">
         <SectionHeader icon={MapPin} title="Ubicación" />
 
         <div className="space-y-4">
@@ -317,7 +317,7 @@ export default function ProduccionPage() {
         </div>
       </section>
 
-      <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5">
+      <section className="rounded-xl border border-zinc-200/80 bg-[var(--sira-surface)] p-4 dark:border-zinc-800 sm:p-5">
         <SectionHeader icon={FileText} title="Detalles del Registro" />
 
         <div className="space-y-4">
@@ -348,7 +348,7 @@ export default function ProduccionPage() {
         </div>
       </section>
 
-      <FormControl controlId="registros" invalid={!!fieldErrors.registros} className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5">
+      <FormControl controlId="registros" invalid={!!fieldErrors.registros} className="rounded-xl border border-zinc-200/80 bg-[var(--sira-surface)] p-4 dark:border-zinc-800 sm:p-5">
         <SectionHeader icon={Egg} title="Registro de producción" />
 
         <div className="space-y-5">
@@ -376,7 +376,7 @@ export default function ProduccionPage() {
         </div>
       </FormControl>
 
-      <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5">
+      <section className="rounded-xl border border-zinc-200/80 bg-[var(--sira-surface)] p-4 dark:border-zinc-800 sm:p-5">
         <SectionHeader icon={Egg} title="Totales" />
         <div className="flex flex-wrap gap-3 text-sm">
           <span className="font-semibold text-brand-600">I: {totales.incubable}</span>

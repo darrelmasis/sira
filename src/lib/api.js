@@ -1,22 +1,39 @@
 const API_BASE = "/api";
 const DEFAULT_TIMEOUT_MS = 30_000;
 
+let refreshTokenFnRef = null;
+
+export function configureApi({ refreshToken }) {
+  refreshTokenFnRef = refreshToken;
+}
+
 export async function api(path, options = {}) {
   const { accessToken, headers, timeout = DEFAULT_TIMEOUT_MS, ...fetchOptions } = options;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
 
-  try {
-    const response = await fetch(`${API_BASE}/${path}`, {
+  async function request(token) {
+    return fetch(`${API_BASE}/${path}`, {
       credentials: "include",
       signal: controller.signal,
       headers: {
         "Content-Type": "application/json",
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(headers || {}),
       },
       ...fetchOptions,
     });
+  }
+
+  try {
+    let response = await request(accessToken);
+
+    if (response.status === 401 && refreshTokenFnRef) {
+      const newToken = await refreshTokenFnRef();
+      if (newToken) {
+        response = await request(newToken);
+      }
+    }
 
     const contentType = response.headers.get("content-type") || "";
     const data = contentType.includes("application/json")

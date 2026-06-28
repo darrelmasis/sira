@@ -102,7 +102,7 @@ export default function AccountPage() {
         </Tabs.List>
 
         <Tabs.Content value="cuenta" className="mt-6 space-y-6">
-          <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5">
+          <section className="rounded-xl border border-zinc-200/80 bg-[var(--sira-surface)] p-4 dark:border-zinc-800 sm:p-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
               <UserAvatar user={user} size="xl" className="shrink-0" />
               <div className="grid min-w-0 flex-1 gap-4 sm:grid-cols-2">
@@ -129,7 +129,7 @@ export default function AccountPage() {
             </div>
           </section>
 
-          <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5">
+          <section className="rounded-xl border border-zinc-200/80 bg-[var(--sira-surface)] p-4 dark:border-zinc-800 sm:p-5">
             <h2 className="mb-3 text-sm font-semibold">Granjas asignadas</h2>
             <div className="flex flex-wrap gap-1">
               {assignedFarmNames.map((name) => (
@@ -140,14 +140,14 @@ export default function AccountPage() {
             </div>
           </section>
 
-          <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5">
+          <section className="rounded-xl border border-zinc-200/80 bg-[var(--sira-surface)] p-4 dark:border-zinc-800 sm:p-5">
             <h2 className="mb-3 text-sm font-semibold">Avatar</h2>
             <AvatarPicker />
           </section>
         </Tabs.Content>
 
         <Tabs.Content value="tema" className="mt-6">
-          <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5">
+          <section className="rounded-xl border border-zinc-200/80 bg-[var(--sira-surface)] p-4 dark:border-zinc-800 sm:p-5">
             <h2 className="mb-3 text-sm font-semibold">Apariencia</h2>
             <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
               Selecciona el tema de la aplicación.
@@ -173,7 +173,7 @@ export default function AccountPage() {
         </Tabs.Content>
 
         <Tabs.Content value="seguridad" className="mt-6 space-y-6">
-          <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5">
+          <section className="rounded-xl border border-zinc-200/80 bg-[var(--sira-surface)] p-4 dark:border-zinc-800 sm:p-5">
             <h2 className="mb-1 text-sm font-semibold">Cambiar contraseña</h2>
             <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
               Actualiza tu contraseña de acceso.
@@ -224,7 +224,7 @@ export default function AccountPage() {
             </form>
           </section>
 
-          <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5">
+          <section className="rounded-xl border border-zinc-200/80 bg-[var(--sira-surface)] p-4 dark:border-zinc-800 sm:p-5">
             <h2 className="mb-3 text-sm font-semibold">Sesión</h2>
             <Button type="button" color="danger" variant="outline" onClick={handleLogout}>
               <LogOut aria-hidden="true" className="size-4" />

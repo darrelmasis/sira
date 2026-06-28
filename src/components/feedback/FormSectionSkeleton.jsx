@@ -11,7 +11,7 @@ function FieldSkeleton() {
 
 export default function FormSectionSkeleton({ fields = 6, fullWidthLast = false }) {
   return (
-    <section className="grid gap-4 rounded-xl border border-zinc-200/80 p-5 dark:border-zinc-800 md:grid-cols-2">
+    <section className="grid gap-4 rounded-xl border border-zinc-200/80 bg-[var(--sira-surface)] p-5 dark:border-zinc-800 md:grid-cols-2">
       {Array.from({ length: fields }).map((_, index) => {
         const isLastFull = fullWidthLast && index === fields - 1;
         return (

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Alert, Button, FormDescription, Skeleton, toast, useQuickitThemeController } from "quickit-ui";
-import { Database, Monitor, Moon, Sun, UploadCloud } from "lucide-react";
+import { Alert, Button, FormDescription, Skeleton, Tooltip, toast, useQuickitThemeController } from "quickit-ui";
+import { Database, Info, Monitor, Moon, Sun, UploadCloud, Trash2 } from "lucide-react";
 import PageSection from "@/components/layout/PageSection";
 import { useConfirmDialog } from "@/components/feedback/useConfirmDialog";
 import { useAuth } from "@/features/auth/AuthContext";
@@ -15,6 +15,14 @@ const themeOptions = [
   { value: "light", label: "Claro", icon: Sun },
   { value: "dark", label: "Oscuro", icon: Moon },
 ];
+
+function InfoTip({ text }) {
+  return (
+    <Tooltip content={text}>
+      <Info aria-hidden="true" className="size-4 shrink-0 cursor-help text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300" />
+    </Tooltip>
+  );
+}
 
 export default function AppSettingsPage() {
   const { accessToken } = useAuth();
@@ -63,8 +71,12 @@ export default function AppSettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
-      <PageSection title="Apariencia">
+    <div className="mx-auto max-w-2xl space-y-6">
+      <section className="rounded-xl border border-zinc-200/80 bg-[var(--sira-surface)] p-4 dark:border-zinc-800 sm:p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <h2 className="text-base font-semibold">Apariencia</h2>
+          <InfoTip text="Cambia entre tema claro, oscuro o automático según la configuración de tu dispositivo." />
+        </div>
         <div className="grid grid-cols-3 gap-2">
           {themeOptions.map((option) => {
             const Icon = option.icon;
@@ -82,16 +94,15 @@ export default function AppSettingsPage() {
             );
           })}
         </div>
-      </PageSection>
+      </section>
 
-      <PageSection title="Sincronización">
-        <Alert
-          color="info"
-          title="Modo offline-first"
-          description="Los registros se guardan localmente y se envían al servidor cuando hay conexión."
-        />
+      <section className="rounded-xl border border-zinc-200/80 bg-[var(--sira-surface)] p-4 dark:border-zinc-800 sm:p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <h2 className="text-base font-semibold">Sincronización</h2>
+          <InfoTip text="Los registros se guardan localmente (offline-first) y se envían al servidor cuando hay conexión." />
+        </div>
 
-        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        <div className="grid gap-2 sm:grid-cols-2">
           <FormDescription>Estado: {isOnline ? "En línea" : "Sin conexión"}</FormDescription>
           <FormDescription>Pendientes: {summary.pending + summary.failed}</FormDescription>
           <FormDescription>Sincronizados: {summary.synced}</FormDescription>
@@ -100,32 +111,45 @@ export default function AppSettingsPage() {
 
         {can("sync.manual") && (
           <div className="mt-4 flex flex-wrap gap-2">
-            <Button type="button" onClick={() => syncNow()} loading={isSyncing} loadingText="Sincronizando..." disabled={!isOnline}>
-              <UploadCloud aria-hidden="true" className="size-4" />
-              Sincronizar ahora
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              color="neutral"
-              onClick={handleRefreshCatalogs}
-              loading={refreshingCatalogs}
-              disabled={!isOnline}
-            >
-              <Database aria-hidden="true" className="size-4" />
-              Actualizar catálogos
-            </Button>
-            {summary.failed > 0 && (
-              <Button type="button" variant="outline" color="danger" onClick={handleClearFailed} loading={clearing}>
-                Limpiar fallidos
+            <Tooltip content="Envía todos los registros pendientes al servidor ahora.">
+              <Button type="button" onClick={() => syncNow()} loading={isSyncing} loadingText="Sincronizando..." disabled={!isOnline}>
+                <UploadCloud aria-hidden="true" className="size-4" />
+                Sincronizar ahora
               </Button>
+            </Tooltip>
+
+            <Tooltip content="Descarga la versión más reciente de granjas, galpones y lotes del servidor.">
+              <Button
+                type="button"
+                variant="outline"
+                color="neutral"
+                onClick={handleRefreshCatalogs}
+                loading={refreshingCatalogs}
+                disabled={!isOnline}
+              >
+                <Database aria-hidden="true" className="size-4" />
+                Actualizar catálogos
+              </Button>
+            </Tooltip>
+
+            {summary.failed > 0 && (
+              <Tooltip content="Elimina de la cola local los registros que fallaron al sincronizar.">
+                <Button type="button" variant="outline" color="danger" onClick={handleClearFailed} loading={clearing}>
+                  <Trash2 aria-hidden="true" className="size-4" />
+                  Limpiar fallidos
+                </Button>
+              </Tooltip>
             )}
           </div>
         )}
-      </PageSection>
+      </section>
 
       {catalogSummary ? (
-        <PageSection title="Datos locales">
+        <section className="rounded-xl border border-zinc-200/80 bg-[var(--sira-surface)] p-4 dark:border-zinc-800 sm:p-5">
+          <div className="mb-4 flex items-center gap-2">
+            <h2 className="text-base font-semibold">Datos locales</h2>
+            <InfoTip text="Resumen de los catálogos almacenados en tu dispositivo para uso offline." />
+          </div>
           <div className="grid gap-2 sm:grid-cols-2">
             <FormDescription>Granjas: {catalogSummary.farms}</FormDescription>
             <FormDescription>Galpones: {catalogSummary.sheds}</FormDescription>
@@ -137,16 +161,16 @@ export default function AppSettingsPage() {
               Catálogos: {formatDateTime(catalogSummary.lastRefresh)}
             </FormDescription>
           )}
-        </PageSection>
+        </section>
       ) : (
-        <PageSection>
+        <section className="rounded-xl border border-zinc-200/80 bg-[var(--sira-surface)] p-4 dark:border-zinc-800 sm:p-5">
           <Skeleton variant="line" className="h-5 w-32" />
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             {Array.from({ length: 4 }).map((_, index) => (
               <Skeleton key={index} variant="line" className="h-4 w-28" />
             ))}
           </div>
-        </PageSection>
+        </section>
       )}
 
       <ConfirmDialogHost />

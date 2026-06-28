@@ -275,7 +275,7 @@ export default function MortalidadPage() {
         Complete los detalles para registrar la baja de aves.
       </div>
 
-      <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5">
+      <section className="rounded-xl border border-zinc-200/80 bg-[var(--sira-surface)] p-4 dark:border-zinc-800 sm:p-5">
         <SectionHeader icon={MapPin} title="Ubicación" />
 
         <div className="space-y-4">
@@ -368,7 +368,7 @@ export default function MortalidadPage() {
         </div>
       </section>
 
-      <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5">
+      <section className="rounded-xl border border-zinc-200/80 bg-[var(--sira-surface)] p-4 dark:border-zinc-800 sm:p-5">
         <SectionHeader icon={FileText} title="Detalles del Registro" />
 
         <div className="space-y-4">
@@ -405,7 +405,7 @@ export default function MortalidadPage() {
         </div>
       </section>
 
-      <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5">
+      <section className="rounded-xl border border-zinc-200/80 bg-[var(--sira-surface)] p-4 dark:border-zinc-800 sm:p-5">
         <SectionHeader icon={BarChart3} title="Métricas" />
 
         <div className="space-y-4">

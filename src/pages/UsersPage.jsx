@@ -357,7 +357,7 @@ export default function UsersPage() {
                       </FormControl>
                     </div>
 
-                    <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+                    <div className="rounded-lg border border-zinc-200 bg-[var(--sira-surface)] p-4 dark:border-zinc-800">
                       <Label className="mb-3 block">Granjas asignadas</Label>
                       {formHasGlobalAccess ? (
                         <FormDescription>
