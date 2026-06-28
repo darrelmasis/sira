@@ -23,7 +23,7 @@ export const farmCatalogConfig = {
   deleteDescription: "¿Seguro que deseas eliminar esta granja?",
   deleteSuccess: "Granja eliminada",
   modalTitles: { create: "Nueva granja", edit: "Editar granja" },
-  skeleton: { columns: 2, rows: 4 },
+  skeleton: { columns: 2, rows: 2 },
   initialForm: () => ({ ...farmInitialForm }),
   toForm: (row) => ({ nombre: row.nombre, tipo: row.tipo }),
   load: async ({ accessToken, setData }) => {
