@@ -22,8 +22,7 @@ import { useAuth } from "@/features/auth/AuthContext";
 import { usePermissions } from "@/features/auth/permissions";
 import UserAvatar from "@/components/UserAvatar";
 import RolePermissionsPanel from "@/features/users/RolePermissionsPanel";
-import TableSkeleton from "@/components/feedback/TableSkeleton";
-import ListEmptyState from "@/components/feedback/ListEmptyState";
+import PageTable from "@/components/data/PageTable";
 import RowActionsDropdown from "@/components/ui/RowActionsDropdown";
 import { formatDateTime } from "@/lib/datetime";
 
@@ -259,23 +258,25 @@ export default function UsersPage() {
               </Button>
             </div>
 
-            {loading ? (
-              <TableSkeleton columns={columns} rows={5} />
-            ) : users.length === 0 ? (
-              <ListEmptyState
-                icon={Users}
-                title="Sin usuarios"
-                description="Agrega el primer usuario para empezar a asignar roles y granjas."
-                actions={
-                  <Button type="button" color="brand" onClick={openCreate}>
-                    <UserPlus aria-hidden="true" className="size-4" />
-                    Agregar usuario
-                  </Button>
-                }
-              />
-            ) : (
-                <DataTable columns={columns} data={users} rowKey={(row) => row.id} stickyHeader color="neutral" />
-            )}
+            <PageTable
+              columns={columns}
+              data={users}
+              rowKey={(row) => row.id}
+              loading={loading}
+              stickyHeader
+              color="neutral"
+              limit={25}
+              skeletonRows={5}
+              emptyIcon={Users}
+              emptyTitle="Sin usuarios"
+              emptyDescription="Agrega el primer usuario para empezar a asignar roles y granjas."
+              emptyActions={
+                <Button type="button" color="brand" onClick={openCreate}>
+                  <UserPlus aria-hidden="true" className="size-4" />
+                  Agregar usuario
+                </Button>
+              }
+            />
 
             <Modal open={modalOpen} onOpenChange={setModalOpen}>
               <Modal.Content>

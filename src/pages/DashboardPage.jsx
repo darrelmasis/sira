@@ -8,64 +8,68 @@ export default function DashboardPage() {
   const showAdmin = can("users.manage") || can("roles.manage") || can("catalogs.manage") || can("settings.view");
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <section className="rounded-xl border border-zinc-200/80 bg-[var(--sira-surface)] p-4 dark:border-zinc-800 sm:p-5">
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-400">Registro</h2>
+    <div className="mx-auto max-w-4xl space-y-8">
+      <div className="space-y-3">
+        <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-brand-600 dark:text-brand-400">
+          <span className="h-px flex-1 bg-brand-200 dark:bg-brand-900" />
+          Registro
+          <span className="h-px flex-1 bg-brand-200 dark:bg-brand-900" />
+        </h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <QuickAccessCard
             to="/mortalidad"
             icon={Skull}
             label="Mortalidad"
-            description="Reporte diario de bajas y causas técnicas."
-            accent="danger"
-            layout="card"
+            description="Registra la baja de aves y especifica las causas."
           />
           <QuickAccessCard
             to="/produccion"
             icon={Egg}
             label="Producción"
-            description="Ingreso de rendimientos y recolección total."
-            accent="success"
-            layout="card"
+            description="Ingresa el volumen de huevo recolectado por clasificación."
           />
         </div>
-      </section>
+      </div>
 
-      <section className="rounded-xl border border-zinc-200/80 bg-[var(--sira-surface)] p-4 dark:border-zinc-800 sm:p-5">
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-400">Consulta</h2>
-        <div className="grid gap-2 sm:grid-cols-2">
+      <div className="space-y-3">
+        <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-zinc-400">
+          <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+          Consulta
+          <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+        </h2>
+        <div className="grid gap-3 sm:grid-cols-2">
           <QuickAccessCard
             to="/historial"
             icon={History}
             label="Historial"
-            description="Consultar registros anteriores."
-            accent="info"
-            layout="list"
+            description="Revisa registros anteriores, edítalos o expórtalos."
+            section="consulta"
           />
           <QuickAccessCard
             to="/cuenta"
             icon={User}
             label="Mi cuenta"
-            description="Perfil y preferencias personales."
-            accent="brand"
-            layout="list"
+            description="Administra tu perfil, avatar y preferencias."
+            section="consulta"
           />
         </div>
-      </section>
+      </div>
 
       {showAdmin && (
-        <section className="rounded-xl border border-zinc-200/80 bg-[var(--sira-surface)] p-4 dark:border-zinc-800 sm:p-5">
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-400">Administración</h2>
+        <div className="space-y-3">
+          <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-zinc-400">
+            <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+            Administración
+            <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+          </h2>
           <div className="grid gap-3 sm:grid-cols-3">
             {(can("users.manage") || can("roles.manage")) && (
               <QuickAccessCard
                 to="/usuarios"
                 icon={Users}
                 label="Usuarios"
-                description="Gestionar accesos, roles y permisos."
-                action="Acceder"
-                accent="warning"
-                layout="hero"
+                description="Gestiona accesos, roles y permisos del personal."
+                section="admin"
               />
             )}
             {can("catalogs.manage") && (
@@ -73,10 +77,8 @@ export default function DashboardPage() {
                 to="/catalogos"
                 icon={Database}
                 label="Catálogos"
-                description="Configuración de bases de datos maestras."
-                action="Configurar"
-                accent="warning"
-                layout="hero"
+                description="Configura granjas, galpones, lotes y razas."
+                section="admin"
               />
             )}
             {can("settings.view") && (
@@ -84,14 +86,12 @@ export default function DashboardPage() {
                 to="/sistema"
                 icon={Settings}
                 label="Sistema"
-                description="Parámetros globales y mantenimiento."
-                action="Ajustes"
-                accent="brand"
-                layout="hero"
+                description="Ajusta tema, sincronización y datos locales."
+                section="admin"
               />
             )}
           </div>
-        </section>
+        </div>
       )}
     </div>
   );

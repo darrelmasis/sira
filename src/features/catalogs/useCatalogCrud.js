@@ -39,7 +39,7 @@ export function useCatalogCrud(config) {
 
   function openEdit(row) {
     setEditing(row);
-    setForm(config.toForm(row));
+    setForm(config.toForm(row, meta));
     setModalOpen(true);
   }
 

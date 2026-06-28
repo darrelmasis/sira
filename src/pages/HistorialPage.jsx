@@ -3,7 +3,6 @@ import {
   Alert,
   Badge,
   Button,
-  DataTable,
   FormControl,
   Input,
   Label,
@@ -14,12 +13,13 @@ import {
   FormDescription,
   toast,
 } from "quickit-ui";
-import { ClipboardList, Cloud, CloudOff, Egg, Eye, RefreshCw, Save, Skull } from "lucide-react";
-import NumberStepper from "@/components/ui/NumberStepper";
-import UserAvatar from "@/components/UserAvatar";
-import TableSkeleton from "@/components/feedback/TableSkeleton";
+import { ClipboardList, Cloud, CloudOff, Eye, RefreshCw, Save, Skull } from "lucide-react";
+import PageTable from "@/components/data/PageTable";
+import FilterDrawer from "@/components/filters/FilterDrawer";
 import ListEmptyState from "@/components/feedback/ListEmptyState";
+import NumberStepper from "@/components/ui/NumberStepper";
 import RowActionsDropdown from "@/components/ui/RowActionsDropdown";
+import UserAvatar from "@/components/UserAvatar";
 import { useFarmAccess } from "@/features/auth/farmAccess";
 import { usePermissions } from "@/features/auth/permissions";
 import { getLocalCatalogs } from "@/features/catalogs/catalogStore";
@@ -33,7 +33,6 @@ import { useAuth } from "@/features/auth/AuthContext";
 
 const POLL_INTERVAL = 15_000;
 const todayStr = () => extractDateOnly(new Date());
-const yesterdayStr = () => extractDateOnly(new Date(Date.now() - 86400000));
 
 const syncStatusMeta = {
   pending: { label: "Pendiente", color: "warning" },
@@ -174,28 +173,41 @@ export default function HistorialPage() {
 
   function openEdit(record) {
     const p = record.payload;
+    const isProduccion = record.module === "produccion";
     setEditRecord(record);
     setEditForm({
       fecha: formatDateInput(p.fecha),
       granjaId: p.granjaId || "",
       galponId: p.galponId || "",
       loteId: p.loteId || "",
-      mortalidad: String(p.data?.mortalidad ?? "0"),
-      sexo: p.data?.sexo || "macho",
-      causaMuerte: p.data?.causaMuerte || "",
+      ...(isProduccion
+        ? {
+            registros: p.data?.registros || [],
+          }
+        : {
+            mortalidad: String(p.data?.mortalidad ?? "0"),
+            sexo: p.data?.sexo || "macho",
+            causaMuerte: p.data?.causaMuerte || "",
+          }),
     });
     setEditError("");
     setEditSaving(false);
   }
 
+
+
   async function handleEditSubmit(event) {
     event.preventDefault();
     if (!editForm || !editRecord) return;
 
-    const mortality = Number(editForm.mortalidad);
-    if (mortality < 0) {
-      setEditError("La mortalidad debe ser cero o mayor.");
-      return;
+    const isProduccion = editRecord.module === "produccion";
+
+    if (!isProduccion) {
+      const mortality = Number(editForm.mortalidad);
+      if (mortality < 0) {
+        setEditError("La mortalidad debe ser cero o mayor.");
+        return;
+      }
     }
 
     setEditSaving(true);
@@ -206,14 +218,26 @@ export default function HistorialPage() {
       granjaId: editForm.granjaId.trim(),
       galponId: editForm.galponId.trim(),
       loteId: editForm.loteId.trim(),
-      data: {
-        mortalidad: mortality,
-        sexo: editForm.sexo,
-        causaMuerte: editForm.causaMuerte.trim(),
-      },
+      module: editRecord.module,
+      ...(isProduccion
+        ? {
+            data: {
+              ...editRecord.payload.data,
+              registros: editForm.registros,
+            },
+          }
+        : {
+            data: {
+              mortalidad: Number(editForm.mortalidad),
+              sexo: editForm.sexo,
+              causaMuerte: editForm.causaMuerte.trim(),
+            },
+          }),
     };
 
     try {
+      let nextStatus = "pending";
+
       if (editRecord.syncStatus === "synced") {
         const body = {
           clientId: editRecord.id,
@@ -226,17 +250,22 @@ export default function HistorialPage() {
           body: JSON.stringify(body),
         });
         if (!response.success) throw new Error(response.message || "Error al actualizar");
+        
+        nextStatus = "synced";
       }
 
-      await updateRecordInQueue(editRecord.id, {
-        payload: updatedPayload,
-        auditActor: null,
-      });
+      await updateRecordInQueue(
+        editRecord.id,
+        {
+          payload: updatedPayload,
+          auditActor: null,
+        },
+        nextStatus
+      );
 
       toast({ title: "Registro actualizado", kind: "success" });
 
-      const nextRecords = await getSyncQueue();
-      setRecords(filterRecords(nextRecords));
+      await loadData();
       setEditRecord(null);
       setEditForm(null);
     } catch (error) {
@@ -267,8 +296,7 @@ export default function HistorialPage() {
 
       toast({ title: "Registro eliminado", kind: "success" });
 
-      const nextRecords = await getSyncQueue();
-      setRecords(filterRecords(nextRecords));
+      await loadData();
     } catch (error) {
       toast({ title: error.message || "Error al eliminar", kind: "error" });
     }
@@ -288,6 +316,20 @@ export default function HistorialPage() {
     const isProduccion = moduleFilter === "produccion";
 
     const cols = [
+      ...(moduleFilter === "all"
+        ? [
+            {
+              key: "tipo",
+              header: "Tipo",
+              cellClassName: "min-w-24 whitespace-nowrap",
+              render: (row) => (
+                <Badge color={row.module === "produccion" ? "info" : "warning"} variant="soft">
+                  {row.module === "produccion" ? "Producción" : "Mortalidad"}
+                </Badge>
+              ),
+            },
+          ]
+        : []),
       {
         key: "fecha",
         header: "Fecha",
@@ -320,7 +362,7 @@ export default function HistorialPage() {
         ? [
             {
               key: "edad",
-              header: "Edad",
+              header: "Semana",
               sortable: true,
               align: "right",
               cellClassName: "min-w-16 whitespace-nowrap",
@@ -383,7 +425,7 @@ export default function HistorialPage() {
       },
       {
         key: "updatedBy",
-        header: "Modificado por",
+        header: "Modificado Por",
         cellClassName: "min-w-44 whitespace-normal",
         headerClassName: "min-w-44",
         render: (row) => {
@@ -441,122 +483,33 @@ export default function HistorialPage() {
     });
   }
 
-  if (loading) {
-    return <TableSkeleton columns={columns} rows={6} />;
-  }
-
   function setRange(preset) {
     setDatePreset(preset);
     if (preset === "today") {
       const d = new Date();
       setDateRange({ from: d, to: d });
-    } else if (preset === "yesterday") {
-      const d = new Date(Date.now() - 86400000);
-      setDateRange({ from: d, to: d });
-    } else {
+    } else if (preset !== "range") {
       setDateRange({ from: null, to: null });
     }
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-nowrap items-center gap-1 overflow-x-auto pb-1 sm:flex-wrap sm:gap-2">
-        <Button
-          type="button"
-          size="sm"
-          variant={datePreset === "all" ? "solid" : "outline"}
-          color={datePreset === "all" ? "brand" : "neutral"}
-          onClick={() => setRange("all")}
-        >
-          Todas
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant={datePreset === "today" ? "solid" : "outline"}
-          color={datePreset === "today" ? "brand" : "neutral"}
-          onClick={() => setRange("today")}
-        >
-          Hoy
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant={datePreset === "yesterday" ? "solid" : "outline"}
-          color={datePreset === "yesterday" ? "brand" : "neutral"}
-          onClick={() => setRange("yesterday")}
-        >
-          Ayer
-        </Button>
+      <FilterDrawer
+        datePreset={datePreset}
+        onPresetChange={setRange}
+        dateRange={dateRange}
+        setDateRange={setDateRange}
+        moduleFilter={moduleFilter}
+        setModuleFilter={setModuleFilter}
+        farmFilter={farmFilter}
+        setFarmFilter={setFarmFilter}
+        catalogs={catalogs}
+        records={records}
+        filteredRecords={filteredRecords}
+      />
 
-        <div className="mx-1 hidden h-6 w-px shrink-0 bg-zinc-200 dark:bg-zinc-700 sm:block" />
-
-        <Button
-          type="button"
-          size="sm"
-          variant={moduleFilter === "all" ? "solid" : "outline"}
-          color={moduleFilter === "all" ? "brand" : "neutral"}
-          onClick={() => setModuleFilter("all")}
-        >
-          Todas
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant={moduleFilter === "mortalidad" ? "solid" : "outline"}
-          color={moduleFilter === "mortalidad" ? "brand" : "neutral"}
-          onClick={() => setModuleFilter("mortalidad")}
-        >
-          <Skull aria-hidden="true" className="size-4" />
-          <span className="hidden sm:inline">Mortalidad</span>
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant={moduleFilter === "produccion" ? "solid" : "outline"}
-          color={moduleFilter === "produccion" ? "brand" : "neutral"}
-          onClick={() => setModuleFilter("produccion")}
-        >
-          <Egg aria-hidden="true" className="size-4" />
-          <span className="hidden sm:inline">Producción</span>
-        </Button>
-
-        <div className="mx-1 hidden h-6 w-px shrink-0 bg-zinc-200 dark:bg-zinc-700 sm:block" />
-
-        <div className="w-40 shrink-0 sm:w-48">
-          <DatePicker
-            selectionMode="between"
-            value={dateRange}
-            onChange={(range) => {
-              setDateRange(range);
-              setDatePreset("range");
-            }}
-            placeholder="Rango"
-            dateStyle="short"
-            size="sm"
-          />
-        </div>
-
-        <div className="w-36 shrink-0 sm:w-44">
-          <Select
-            value={farmFilter}
-            placeholder="Granja"
-            onValueChange={(value) => setFarmFilter(value)}
-            size="sm"
-          >
-            <option value="">Todas las granjas</option>
-            {catalogs.farms.map((farm) => (
-              <option key={farm.id} value={farm.id}>{farm.nombre}</option>
-            ))}
-          </Select>
-        </div>
-
-        <span className="ml-auto hidden shrink-0 text-sm text-zinc-500 sm:inline">
-          {filteredRecords.length} de {records.length} registro{records.length !== 1 ? "s" : ""}
-        </span>
-      </div>
-
-      {filteredRecords.length === 0 ? (
+      {filteredRecords.length === 0 && !loading ? (
         <ListEmptyState
           icon={ClipboardList}
           title={records.length === 0 ? "Sin registros" : "Sin resultados"}
@@ -567,12 +520,15 @@ export default function HistorialPage() {
           }
         />
       ) : (
-        <DataTable
+        <PageTable
           columns={columns}
           data={filteredRecords}
           rowKey={(row) => row.id}
+          loading={loading}
           stickyHeader
           color="neutral"
+          limit={25}
+          skeletonRows={6}
         />
       )}
 
@@ -582,12 +538,13 @@ export default function HistorialPage() {
         <Modal.Content>
           <Modal.Header>
             <Modal.Title>Detalle del registro</Modal.Title>
-            <FormDescription>Información completa del registro de mortalidad.</FormDescription>
+            <FormDescription>Información completa del registro.</FormDescription>
           </Modal.Header>
 
           <Modal.Body className="space-y-4">
             {viewRecord && (() => {
               const p = viewRecord.payload;
+              const isProduccion = viewRecord.module === "produccion";
               const farmId = normalizeId(p.granjaId);
               const shedId = normalizeId(p.galponId);
               const lotId = normalizeId(p.loteId);
@@ -605,30 +562,72 @@ export default function HistorialPage() {
                     <Label>Fecha</Label>
                     <p className="text-sm">{formatDateShort(p.fecha)}</p>
                   </div>
-                  <div>
-                    <Label>Mortalidad</Label>
-                    <p className="text-sm font-semibold tabular-nums">{p.data?.mortalidad ?? 0}</p>
-                  </div>
-                  <div className="md:col-span-2">
-                    <Label>Ubicación</Label>
-                    <p className="text-sm">{farm} · {shed} · Lote {lot}</p>
-                  </div>
-                  <div>
-                    <Label>Sexo</Label>
-                    <p className="text-sm capitalize">{p.data?.sexo || "macho"}</p>
-                  </div>
-                  <div>
-                    <Label>Estado de sincronización</Label>
-                    <Badge color={meta.color} variant="soft">{meta.label}</Badge>
-                  </div>
-                  {p.data?.causaMuerte && (
-                    <div className="md:col-span-2">
-                      <Label>Causa de muerte</Label>
-                      <p className="text-sm whitespace-pre-wrap">{p.data.causaMuerte}</p>
-                    </div>
+                  {isProduccion ? (
+                    <>
+                      <div>
+                        <Label>Semana</Label>
+                        <p className="text-sm font-semibold tabular-nums">{p.edad ?? "—"}</p>
+                      </div>
+                      <div className="md:col-span-2">
+                        <Label>Ubicación</Label>
+                        <p className="text-sm">{farm} · {shed} · Lote {lot}</p>
+                      </div>
+                      <div>
+                        <Label>Raza</Label>
+                        <p className="text-sm">{p.data?.raza || "—"}</p>
+                      </div>
+                      <div>
+                        <Label>Estado de sincronización</Label>
+                        <Badge color={meta.color} variant="soft">{meta.label}</Badge>
+                      </div>
+                      {p.data?.registros?.length > 0 && (
+                        <div className="md:col-span-2">
+                          <Label>Registros</Label>
+                          <div className="mt-1 space-y-1">
+                            {p.data.registros.map((r, i) => (
+                              <div key={i} className="flex justify-between text-sm">
+                                <span className="capitalize">{r.categoria?.replace(/-/g, " ")}</span>
+                                <span className="font-semibold tabular-nums">{r.cantidad}</span>
+                              </div>
+                            ))}
+                            <div className="flex justify-between border-t border-zinc-200 pt-1 text-sm font-bold dark:border-zinc-700">
+                              <span>Total</span>
+                              <span className="tabular-nums">
+                                {p.data.registros.reduce((s, r) => s + Number(r.cantidad || 0), 0)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <Label>Mortalidad</Label>
+                        <p className="text-sm font-semibold tabular-nums">{p.data?.mortalidad ?? 0}</p>
+                      </div>
+                      <div className="md:col-span-2">
+                        <Label>Ubicación</Label>
+                        <p className="text-sm">{farm} · {shed} · Lote {lot}</p>
+                      </div>
+                      <div>
+                        <Label>Sexo</Label>
+                        <p className="text-sm capitalize">{p.data?.sexo || "macho"}</p>
+                      </div>
+                      <div>
+                        <Label>Estado de sincronización</Label>
+                        <Badge color={meta.color} variant="soft">{meta.label}</Badge>
+                      </div>
+                      {p.data?.causaMuerte && (
+                        <div className="md:col-span-2">
+                          <Label>Causa de muerte</Label>
+                          <p className="text-sm whitespace-pre-wrap">{p.data.causaMuerte}</p>
+                        </div>
+                      )}
+                    </>
                   )}
                   <div>
-                    <Label>Modificado por</Label>
+                    <Label>Modificado Por</Label>
                     <div className="flex items-center gap-2 mt-1">
                       <UserAvatar
                         user={isCurrentUser ? { ...actor, avatarId: currentUser.avatarId } : actor}
@@ -639,7 +638,7 @@ export default function HistorialPage() {
                     </div>
                   </div>
                   <div>
-                    <Label>Última modificación</Label>
+                    <Label>Última Modificación</Label>
                     <p className="text-sm">{formatDateTime(p.audit?.updatedAt || viewRecord.updatedAt)}</p>
                   </div>
                   <div>
@@ -648,7 +647,7 @@ export default function HistorialPage() {
                   </div>
                   {viewRecord.syncStatus === "failed" && viewRecord.syncError && (
                     <div className="md:col-span-2">
-                      <Label>Error de sincronización</Label>
+                      <Label>Error de Sincronización</Label>
                       <p className="text-sm text-danger-600">{viewRecord.syncError}</p>
                     </div>
                   )}
@@ -666,18 +665,18 @@ export default function HistorialPage() {
       </Modal>
 
       <Modal open={!!editRecord} onOpenChange={(open) => { if (!open) { setEditRecord(null); setEditForm(null); } }}>
-        <Modal.Content onOpenAutoFocus={(e) => e.preventDefault()}>
+        <Modal.Content>
           <form onSubmit={handleEditSubmit}>
             <Modal.Header>
               <Modal.Title>Editar registro</Modal.Title>
-              <FormDescription>Corrige los datos del registro de mortalidad.</FormDescription>
+              <FormDescription>Corrige los datos del registro.</FormDescription>
             </Modal.Header>
 
             <Modal.Body className="space-y-4">
               {editError && <Alert color="danger" title={editError} />}
-              <div tabIndex={-1} className="sr-only" />
+              <div tabIndex={0} className="sr-only" />
 
-              <section className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-2">
                 <FormControl controlId="edit-fecha" required>
                   <Label>Fecha</Label>
                   <DatePicker
@@ -687,15 +686,22 @@ export default function HistorialPage() {
                   />
                 </FormControl>
 
-                <FormControl controlId="edit-mortalidad" required>
-                  <Label>Cantidad de aves muertas</Label>
-                  <NumberStepper
-                    id="edit-mortalidad"
-                    value={editForm?.mortalidad ?? "0"}
-                    min={0}
-                    onChange={(value) => updateEditField("mortalidad", value)}
-                  />
-                </FormControl>
+                {editRecord?.module === "produccion" ? (
+                  <FormControl controlId="edit-semana">
+                    <Label>Semana</Label>
+                    <Input id="edit-semana" value={String(editRecord.payload.edad ?? "—")} disabled />
+                  </FormControl>
+                ) : (
+                  <FormControl controlId="edit-mortalidad" required>
+                    <Label>Cantidad de aves muertas</Label>
+                    <NumberStepper
+                      id="edit-mortalidad"
+                      value={editForm?.mortalidad ?? "0"}
+                      min={0}
+                      onChange={(value) => updateEditField("mortalidad", value)}
+                    />
+                  </FormControl>
+                )}
 
                 <FormControl controlId="edit-granjaId" required>
                   <Label>Granja</Label>
@@ -769,40 +775,74 @@ export default function HistorialPage() {
                   )}
                 </FormControl>
 
-                <FormControl controlId="edit-sexo">
-                  <Label>Sexo</Label>
-                  <Select
-                    id="edit-sexo"
-                    value={editForm?.sexo || "macho"}
-                    placeholder="Seleccionar sexo"
-                    onValueChange={(value) => updateEditField("sexo", value)}
-                  >
-                    <option value="macho">Macho</option>
-                    <option value="hembra">Hembra</option>
-                  </Select>
-                </FormControl>
-              </section>
+                {editRecord?.module === "produccion" && editForm?.registros?.length > 0 && (
+                  <div className="md:col-span-2">
+                    <Label>Registros de Producción</Label>
+                    <div className="mt-1 space-y-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-900">
+                      {editForm.registros.map((r, i) => (
+                        <div key={i} className="flex items-center justify-between gap-4">
+                          <Label className="capitalize min-w-32 m-0">{r.categoria?.replace(/-/g, " ")}</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={r.cantidad}
+                            onChange={(e) => {
+                              const newRegs = [...editForm.registros];
+                              newRegs[i] = { ...r, cantidad: Number(e.target.value) };
+                              updateEditField("registros", newRegs);
+                            }}
+                            onFocus={(e) => e.target.select()}
+                          />
+                        </div>
+                      ))}
+                      <div className="flex justify-between border-t border-zinc-200 pt-2 mt-2 text-sm font-bold dark:border-zinc-700">
+                        <span>Total</span>
+                        <span className="tabular-nums">
+                          {editForm.registros.reduce((s, r) => s + Number(r.cantidad || 0), 0)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-              <FormControl controlId="edit-causaMuerte">
-                <Label>Causa de muerte</Label>
-                <Textarea
-                  id="edit-causaMuerte"
-                  minRows={2}
-                  placeholder="Ej. estrés calórico, problemas respiratorios..."
-                  value={editForm?.causaMuerte || ""}
-                  onChange={(e) => updateEditField("causaMuerte", e.target.value)}
-                />
-              </FormControl>
+                {editRecord?.module !== "produccion" && (
+                  <FormControl controlId="edit-sexo">
+                    <Label>Sexo</Label>
+                    <Select
+                      id="edit-sexo"
+                      value={editForm?.sexo || "macho"}
+                      placeholder="Seleccionar sexo"
+                      onValueChange={(value) => updateEditField("sexo", value)}
+                    >
+                      <option value="macho">Macho</option>
+                      <option value="hembra">Hembra</option>
+                    </Select>
+                  </FormControl>
+                )}
+              </div>
+
+              {editRecord?.module !== "produccion" && (
+                <FormControl controlId="edit-causaMuerte">
+                  <Label>Causa de muerte</Label>
+                  <Textarea
+                    id="edit-causaMuerte"
+                    minRows={2}
+                    placeholder="Ej. estrés calórico, problemas respiratorios..."
+                    value={editForm?.causaMuerte || ""}
+                    onChange={(e) => updateEditField("causaMuerte", e.target.value)}
+                  />
+                </FormControl>
+              )}
             </Modal.Body>
 
             <Modal.Actions>
-              <Modal.Action type="button" variant="ghost" onClick={() => { setEditRecord(null); setEditForm(null); }}>
+              <Button type="button" variant="ghost" onClick={() => { setEditRecord(null); setEditForm(null); }}>
                 Cancelar
-              </Modal.Action>
-              <Modal.Action type="submit" loading={editSaving} loadingText="Guardando...">
-                <Save aria-hidden="true" className="size-4" />
+              </Button>
+              <Button type="submit" color="primary" loading={editSaving} loadingText="Guardando...">
+                <Save aria-hidden="true" className="mr-2 size-4" />
                 Guardar cambios
-              </Modal.Action>
+              </Button>
             </Modal.Actions>
           </form>
         </Modal.Content>

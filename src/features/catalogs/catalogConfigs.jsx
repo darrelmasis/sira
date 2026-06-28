@@ -7,6 +7,7 @@ import {
   isDuplicatePlacement,
   isDuplicateShed,
   labelForId,
+  normalizeId,
 } from "@/lib/catalog-utils";
 import { formatDateInput, formatDateShort, parseDateInput, todayInput } from "@/lib/datetime";
 import RowActionsDropdown from "@/components/ui/RowActionsDropdown";
@@ -289,6 +290,7 @@ export const lotCatalogConfig = {
           min="0"
           value={form.hembras}
           onChange={(e) => setForm({ ...form, hembras: Number(e.target.value) })}
+          onFocus={(e) => e.target.select()}
         />
       </FormControl>
       <FormControl>
@@ -298,6 +300,7 @@ export const lotCatalogConfig = {
           min="0"
           value={form.machos}
           onChange={(e) => setForm({ ...form, machos: Number(e.target.value) })}
+          onFocus={(e) => e.target.select()}
         />
       </FormControl>
       <FormControl required className="col-span-2">
@@ -312,6 +315,7 @@ export const lotCatalogConfig = {
 };
 
 const placementInitialForm = {
+  granjaId: "",
   loteId: "",
   galponId: "",
   hembras: 0,
@@ -332,24 +336,35 @@ export const placementCatalogConfig = {
   skeleton: { columns: 5, rows: 4 },
   initialForm: (meta) => ({
     ...placementInitialForm,
-    loteId: meta.lots?.[0]?.id || "",
-    galponId: meta.sheds?.[0]?.id || "",
+    granjaId: meta.farms?.[0]?.id || "",
+    loteId: "",
+    galponId: "",
   }),
-  toForm: (row) => ({
-    loteId: row.loteId,
-    galponId: row.galponId,
-    hembras: row.hembras,
-    machos: row.machos,
-    fechaAlojamiento: formatDateInput(row.fechaAlojamiento),
-  }),
+  toForm: (row, meta) => {
+    const lot = (meta?.lots || []).find((l) => normalizeId(l.id) === normalizeId(row.loteId));
+    return {
+      granjaId: lot?.granjaId || "",
+      loteId: row.loteId,
+      galponId: row.galponId,
+      hembras: row.hembras,
+      machos: row.machos,
+      fechaAlojamiento: formatDateInput(row.fechaAlojamiento),
+    };
+  },
+  toPayload: (form) => {
+    const { granjaId, ...rest } = form;
+    return rest;
+  },
   load: async ({ accessToken, setData, setMeta }) => {
-    const [placementsRes, lotsRes, shedsRes] = await Promise.all([
+    const [placementsRes, farmsRes, lotsRes, shedsRes] = await Promise.all([
       api("alojamientos", { method: "GET", accessToken }),
+      api("granjas", { method: "GET", accessToken }),
       api("lotes", { method: "GET", accessToken }),
       api("galpones", { method: "GET", accessToken }),
     ]);
     if (placementsRes.success) setData(placementsRes.data);
     setMeta({
+      farms: farmsRes.success ? farmsRes.data : [],
       lots: lotsRes.success ? lotsRes.data : [],
       sheds: shedsRes.success ? shedsRes.data : [],
     });
@@ -406,55 +421,95 @@ export const placementCatalogConfig = {
     description: "Registra dónde y cuándo se alojó cada lote.",
     actionsLabel: "Crear alojamiento",
   }),
-  renderForm: ({ form, setForm, meta }) => (
-    <div className="grid grid-cols-2 gap-4">
-      <FormControl required className="col-span-2">
-        <Label>Fecha de alojamiento</Label>
-        <DatePicker
-          value={parseDateInput(form.fechaAlojamiento)}
-          onChange={(date) => setForm({ ...form, fechaAlojamiento: formatDateInput(date) })}
-        />
-      </FormControl>
-      <FormControl required>
-        <Label>Lote</Label>
-        <Select value={form.loteId} onValueChange={(val) => setForm({ ...form, loteId: val })}>
-          {(meta.lots || []).map((lot) => (
-            <option key={lot.id} value={lot.id}>
-              {lot.codigo}
-            </option>
-          ))}
-        </Select>
-      </FormControl>
-      <FormControl required>
-        <Label>Galpón</Label>
-        <Select value={form.galponId} onValueChange={(val) => setForm({ ...form, galponId: val })}>
-          {(meta.sheds || []).map((shed) => (
-            <option key={shed.id} value={shed.id}>
-              {shed.nombre}
-            </option>
-          ))}
-        </Select>
-      </FormControl>
-      <FormControl>
-        <Label>Hembras</Label>
-        <Input
-          type="number"
-          min="0"
-          value={form.hembras}
-          onChange={(e) => setForm({ ...form, hembras: Number(e.target.value) })}
-        />
-      </FormControl>
-      <FormControl>
-        <Label>Machos</Label>
-        <Input
-          type="number"
-          min="0"
-          value={form.machos}
-          onChange={(e) => setForm({ ...form, machos: Number(e.target.value) })}
-        />
-      </FormControl>
-    </div>
-  ),
+  renderForm: ({ form, setForm, meta }) => {
+    const farms = meta.farms || [];
+    const allLots = meta.lots || [];
+    const allSheds = meta.sheds || [];
+
+    const filteredLots = form.granjaId
+      ? allLots.filter((l) => normalizeId(l.granjaId) === normalizeId(form.granjaId))
+      : allLots;
+
+    const filteredSheds = form.granjaId
+      ? allSheds.filter((s) => normalizeId(s.granjaId) === normalizeId(form.granjaId))
+      : allSheds;
+
+    return (
+      <div className="grid grid-cols-2 gap-4">
+        <FormControl required className="col-span-2">
+          <Label>Fecha de alojamiento</Label>
+          <DatePicker
+            value={parseDateInput(form.fechaAlojamiento)}
+            onChange={(date) => setForm({ ...form, fechaAlojamiento: formatDateInput(date) })}
+          />
+        </FormControl>
+        <FormControl required className="col-span-2">
+          <Label>Granja</Label>
+          <Select
+            value={form.granjaId}
+            onValueChange={(val) => setForm({ ...form, granjaId: val, loteId: "", galponId: "" })}
+          >
+            <option value="">Seleccionar granja...</option>
+            {farms.map((farm) => (
+              <option key={farm.id} value={farm.id}>
+                {farm.nombre}
+              </option>
+            ))}
+          </Select>
+        </FormControl>
+        <FormControl required>
+          <Label>Lote</Label>
+          <Select
+            value={form.loteId}
+            onValueChange={(val) => setForm({ ...form, loteId: val, galponId: "" })}
+            disabled={!form.granjaId}
+          >
+            <option value="">{form.granjaId ? "Seleccionar lote..." : "Selecciona una granja primero"}</option>
+            {filteredLots.map((lot) => (
+              <option key={lot.id} value={lot.id}>
+                {lot.codigo}
+              </option>
+            ))}
+          </Select>
+        </FormControl>
+        <FormControl required>
+          <Label>Galpón</Label>
+          <Select
+            value={form.galponId}
+            onValueChange={(val) => setForm({ ...form, galponId: val })}
+            disabled={!form.granjaId}
+          >
+            <option value="">{form.granjaId ? "Seleccionar galpón..." : "Selecciona una granja primero"}</option>
+            {filteredSheds.map((shed) => (
+              <option key={shed.id} value={shed.id}>
+                {shed.nombre}
+              </option>
+            ))}
+          </Select>
+        </FormControl>
+        <FormControl>
+          <Label>Hembras</Label>
+          <Input
+            type="number"
+            min="0"
+            value={form.hembras}
+            onChange={(e) => setForm({ ...form, hembras: Number(e.target.value) })}
+            onFocus={(e) => e.target.select()}
+          />
+        </FormControl>
+        <FormControl>
+          <Label>Machos</Label>
+          <Input
+            type="number"
+            min="0"
+            value={form.machos}
+            onChange={(e) => setForm({ ...form, machos: Number(e.target.value) })}
+            onFocus={(e) => e.target.select()}
+          />
+        </FormControl>
+      </div>
+    );
+  },
 };
 
 export const catalogConfigs = {

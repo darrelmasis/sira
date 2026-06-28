@@ -68,3 +68,14 @@ export function todayInput() {
 export function isSameCalendarDay(a, b) {
   return extractDateOnly(a) === extractDateOnly(b);
 }
+
+export function getAgeWeeks(fechaAlojamiento, fechaRegistro) {
+  const aloj = parseDateInput(fechaAlojamiento);
+  const reg = parseDateInput(fechaRegistro);
+  if (!aloj || !reg || isNaN(aloj.getTime()) || isNaN(reg.getTime())) return null;
+
+  const diffMs = reg.getTime() - aloj.getTime();
+  const diffDays = Math.round(diffMs / 86400000);
+  if (diffDays < 0) return 0;
+  return Math.floor(diffDays / 7);
+}

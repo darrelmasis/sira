@@ -166,7 +166,7 @@ export async function syncPendingRecords(accessToken) {
   return { synced, failed };
 }
 
-export async function updateRecordInQueue(id, updates) {
+export async function updateRecordInQueue(id, updates, forceSyncStatus) {
   const existing = await localDb.syncQueue.get(id);
   if (!existing) return null;
 
@@ -184,7 +184,7 @@ export async function updateRecordInQueue(id, updates) {
       },
     },
     updatedAt: now,
-    syncStatus: "pending",
+    syncStatus: forceSyncStatus || "pending",
     syncError: null,
   };
 

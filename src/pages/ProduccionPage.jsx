@@ -10,7 +10,7 @@ import { usePermissions } from "@/features/auth/permissions";
 import { getLocalCatalogs } from "@/features/catalogs/catalogStore";
 import { enqueueRecord } from "@/features/sync/syncQueue";
 import { useSync } from "@/features/sync/SyncProvider";
-import { formatDateInput, parseDateInput, todayInput } from "@/lib/datetime";
+import { formatDateInput, parseDateInput, todayInput, getAgeWeeks } from "@/lib/datetime";
 import { normalizeId } from "@/lib/catalog-utils";
 import { EGG_CATEGORIES, getCategoriasPorClasificacion } from "@/lib/egg-categories";
 
@@ -66,21 +66,19 @@ export default function ProduccionPage() {
 
   const edad = useMemo(() => {
     if (!selectedPlacement || !values.fecha) return null;
-    const aloj = new Date(selectedPlacement.fechaAlojamiento);
-    const fecha = new Date(values.fecha);
-    if (isNaN(aloj.getTime()) || isNaN(fecha.getTime())) return null;
-    const diffMs = fecha.getTime() - aloj.getTime();
-    const diffDays = Math.floor(diffMs / 86400000);
-    if (diffDays < 0) return 0;
-    return Math.floor(diffDays / 7);
+    return getAgeWeeks(selectedPlacement.fechaAlojamiento, values.fecha);
   }, [selectedPlacement, values.fecha]);
 
   const raza = selectedLot?.raza || "";
 
-  const filteredSheds = useMemo(
-    () => catalogs.sheds.filter((shed) => !values.granjaId || normalizeId(shed.granjaId) === normalizeId(values.granjaId)),
-    [catalogs.sheds, values.granjaId],
-  );
+  const filteredSheds = useMemo(() => {
+    if (!values.loteId) return [];
+    const lotPlacements = catalogs.placements.filter(
+      (p) => normalizeId(p.loteId) === normalizeId(values.loteId)
+    );
+    const validShedIds = new Set(lotPlacements.map((p) => normalizeId(p.galponId)));
+    return catalogs.sheds.filter((shed) => validShedIds.has(normalizeId(shed.id)));
+  }, [catalogs.sheds, catalogs.placements, values.loteId]);
 
   const filteredLots = useMemo(
     () => catalogs.lots.filter((lot) => !values.granjaId || normalizeId(lot.granjaId) === normalizeId(values.granjaId)),
@@ -128,8 +126,11 @@ export default function ProduccionPage() {
     setValues((current) => {
       const next = { ...current, [field]: value };
       if (field === "granjaId") {
-        next.galponId = "";
         next.loteId = "";
+        next.galponId = "";
+      }
+      if (field === "loteId") {
+        next.galponId = "";
       }
       return next;
     });
@@ -284,21 +285,6 @@ export default function ProduccionPage() {
           </FormControl>
 
           <div className="grid grid-cols-2 gap-4">
-            <FormControl controlId="galponId" required invalid={!!fieldErrors.galponId}>
-              <Label>Galpón</Label>
-              {filteredSheds.length > 0 ? (
-                <Select id="galponId" value={values.galponId} placeholder="Seleccionar..." onValueChange={(value) => updateField("galponId", value)}>
-                  <option key="placeholder-galpon" value="">Seleccionar...</option>
-                  {filteredSheds.map((shed) => (
-                    <option key={shed.id} value={shed.id}>{shed.nombre}</option>
-                  ))}
-                </Select>
-              ) : (
-                <Input id="galponId" placeholder="ID de galpón" value={values.galponId} onChange={(event) => updateField("galponId", event.target.value)} />
-              )}
-              <FormMessage>{fieldErrors.galponId}</FormMessage>
-            </FormControl>
-
             <FormControl controlId="loteId" required invalid={!!fieldErrors.loteId}>
               <Label>Lote</Label>
               {filteredLots.length > 0 ? (
@@ -312,6 +298,21 @@ export default function ProduccionPage() {
                 <Input id="loteId" placeholder="Código de lote" value={values.loteId} onChange={(event) => updateField("loteId", event.target.value)} />
               )}
               <FormMessage>{fieldErrors.loteId}</FormMessage>
+            </FormControl>
+
+            <FormControl controlId="galponId" required invalid={!!fieldErrors.galponId}>
+              <Label>Galpón</Label>
+              {values.loteId && filteredSheds.length > 0 ? (
+                <Select id="galponId" value={values.galponId} placeholder="Seleccionar..." onValueChange={(value) => updateField("galponId", value)}>
+                  <option key="placeholder-galpon" value="">Seleccionar...</option>
+                  {filteredSheds.map((shed) => (
+                    <option key={shed.id} value={shed.id}>{shed.nombre}</option>
+                  ))}
+                </Select>
+              ) : (
+                <Input id="galponId" placeholder={!values.loteId ? "Selecciona un lote primero" : "ID de galpón"} value={values.galponId} onChange={(event) => updateField("galponId", event.target.value)} disabled={!values.loteId && filteredSheds.length === 0} />
+              )}
+              <FormMessage>{fieldErrors.galponId}</FormMessage>
             </FormControl>
           </div>
         </div>

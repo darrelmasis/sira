@@ -45,6 +45,18 @@ export default function NumberStepper({
             }
             setValue(parseInt(raw, 10));
           }}
+          onFocus={(event) => {
+            if (String(value) === "0") {
+              onChange("");
+            } else {
+              event.target.select();
+            }
+          }}
+          onBlur={() => {
+            if (value === "") {
+              onChange("0");
+            }
+          }}
         />
       </div>
       <Button

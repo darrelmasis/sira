@@ -1,6 +1,6 @@
-import { Button, DataTable, FormDescription, Modal } from "quickit-ui";
+import { Button, FormDescription, Modal } from "quickit-ui";
 import { Plus } from "lucide-react";
-import TableSkeleton from "@/components/feedback/TableSkeleton";
+import PageTable from "@/components/data/PageTable";
 import ListEmptyState from "@/components/feedback/ListEmptyState";
 import { useCatalogCrud } from "./useCatalogCrud";
 
@@ -16,28 +16,28 @@ export default function CatalogCrudPanel({ config }) {
         </Button>
       </div>
 
-      {crud.loading ? (
-        <TableSkeleton columns={crud.columns} rows={crud.skeleton.rows} />
-      ) : crud.prerequisiteEmpty ? (
+      {crud.prerequisiteEmpty ? (
         <ListEmptyState {...crud.prerequisiteEmpty} />
-      ) : crud.data.length === 0 && crud.empty ? (
-        <ListEmptyState
-          {...crud.empty}
-          actions={
-            crud.empty.actionsLabel ? (
+      ) : (
+        <PageTable
+          columns={crud.columns}
+          data={crud.data}
+          rowKey={(row) => row.id}
+          loading={crud.loading}
+          stickyHeader
+          color="neutral"
+          limit={25}
+          skeletonRows={crud.skeleton?.rows || 6}
+          emptyIcon={crud.empty?.icon}
+          emptyTitle={crud.empty?.title}
+          emptyDescription={crud.empty?.description}
+          emptyActions={
+            !crud.editing && crud.empty?.actionsLabel ? (
               <Button type="button" color="brand" onClick={crud.openCreate}>
                 <Plus aria-hidden="true" className="size-4" /> {crud.empty.actionsLabel}
               </Button>
             ) : undefined
           }
-        />
-      ) : (
-        <DataTable
-          data={crud.data}
-          columns={crud.columns}
-          rowKey={(row) => row.id}
-          stickyHeader
-          color="neutral"
         />
       )}
 
@@ -49,15 +49,16 @@ export default function CatalogCrudPanel({ config }) {
               <FormDescription>Completa los campos obligatorios para {crud.editing ? "actualizar" : "crear"} el registro.</FormDescription>
             </Modal.Header>
             <Modal.Body className="space-y-4">
+              <div tabIndex={0} className="sr-only" />
               {crud.renderForm({ form: crud.form, setForm: crud.setForm, meta: crud.meta })}
             </Modal.Body>
             <Modal.Actions>
-              <Modal.Action type="button" variant="ghost" onClick={() => crud.setModalOpen(false)}>
+              <Button type="button" variant="ghost" onClick={() => crud.setModalOpen(false)}>
                 Cancelar
-              </Modal.Action>
-              <Modal.Action type="submit" loading={crud.saving} loadingText="Guardando...">
+              </Button>
+              <Button type="submit" color="primary" loading={crud.saving} loadingText="Guardando...">
                 Guardar
-              </Modal.Action>
+              </Button>
             </Modal.Actions>
           </form>
         </Modal.Content>
