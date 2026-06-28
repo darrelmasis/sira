@@ -1,5 +1,3 @@
-import { parse as parseUrl } from "node:url";
-
 export function readJsonBody(req) {
   return new Promise((resolve, reject) => {
     if (req.body && typeof req.body === "object") {
@@ -28,6 +26,18 @@ export function readJsonBody(req) {
   });
 }
 
+function parseQueryString(url) {
+  const params = {};
+  for (const [key, value] of url.searchParams.entries()) {
+    if (params[key] !== undefined) {
+      params[key] = [].concat(params[key], value);
+    } else {
+      params[key] = value;
+    }
+  }
+  return params;
+}
+
 export function resolveRoutePath(req) {
   let path = req.query?.path;
 
@@ -46,14 +56,15 @@ export function resolveRoutePath(req) {
 }
 
 export function buildApiRequest(req) {
-  const url = parseUrl(req.url || "", true);
-  const path = resolveRoutePath({ ...req, query: url.query });
+  const url = new URL(req.url || "", "http://localhost");
+  const query = parseQueryString(url);
+  const path = resolveRoutePath({ ...req, query });
 
   return {
     method: req.method,
     url: req.url,
     headers: req.headers,
-    query: { ...url.query, path },
+    query: { ...query, path },
     body: undefined,
   };
 }
