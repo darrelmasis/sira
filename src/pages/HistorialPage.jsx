@@ -14,7 +14,7 @@ import {
   FormDescription,
   toast,
 } from "quickit-ui";
-import { ClipboardList, Eye, Save } from "lucide-react";
+import { ClipboardList, Cloud, CloudOff, Eye, RefreshCw, Save } from "lucide-react";
 import NumberStepper from "@/components/NumberStepper";
 import UserAvatar from "@/components/UserAvatar";
 import TableSkeleton from "@/components/feedback/TableSkeleton";
@@ -56,7 +56,7 @@ export default function HistorialPage() {
   const canDelete = can("records.delete");
   const hasActions = canView || canEdit || canDelete;
 
-  const [dateRange, setDateRange] = useState({ from: undefined, to: undefined });
+  const [dateRange, setDateRange] = useState({ from: null, to: null });
   const [datePreset, setDatePreset] = useState("all");
   const [farmFilter, setFarmFilter] = useState("");
   const [viewRecord, setViewRecord] = useState(null);
@@ -330,21 +330,27 @@ export default function HistorialPage() {
       {
         key: "syncStatus",
         header: "Estado",
-        cellClassName: "min-w-32 whitespace-normal",
+        cellClassName: "min-w-12 whitespace-nowrap",
         render: (row) => {
-          const meta = syncStatusMeta[row.syncStatus] || syncStatusMeta.pending;
-          return (
-            <div className="space-y-1">
-              <Badge color={meta.color} variant="soft">
-                {meta.label}
-              </Badge>
-              {row.syncStatus === "failed" && row.syncError && (
-                <FormDescription className="max-w-xs">
-                  {row.syncError}
-                </FormDescription>
-              )}
-            </div>
-          );
+          if (row.syncStatus === "synced") {
+            return <div className="flex justify-center"><Cloud className="text-emerald-500" size={18} aria-label="Sincronizado" /></div>;
+          }
+          if (row.syncStatus === "syncing") {
+            return <div className="flex justify-center"><RefreshCw className="animate-spin text-sky-500" size={18} aria-label="Sincronizando" /></div>;
+          }
+          if (row.syncStatus === "failed") {
+            return (
+              <div className="flex items-center justify-center gap-1">
+                <CloudOff className="text-red-500 shrink-0" size={18} aria-label="Fallido" />
+                {row.syncError && (
+                  <span className="text-xs text-red-500 max-w-40 truncate" title={row.syncError}>
+                    {row.syncError}
+                  </span>
+                )}
+              </div>
+            );
+          }
+          return <div className="flex justify-center"><RefreshCw className="animate-spin text-zinc-400" size={18} aria-label="Pendiente" /></div>;
         },
       },
       {
@@ -411,16 +417,6 @@ export default function HistorialPage() {
     return <TableSkeleton columns={columns} rows={6} />;
   }
 
-  if (!loading && records.length === 0) {
-    return (
-      <ListEmptyState
-        icon={ClipboardList}
-        title="Sin registros"
-        description="Aún no hay capturas de mortalidad. Crea el primer registro desde Mortalidad."
-      />
-    );
-  }
-
   function setRange(preset) {
     setDatePreset(preset);
     if (preset === "today") {
@@ -430,7 +426,7 @@ export default function HistorialPage() {
       const d = new Date(Date.now() - 86400000);
       setDateRange({ from: d, to: d });
     } else {
-      setDateRange({ from: undefined, to: undefined });
+      setDateRange({ from: null, to: null });
     }
   }
 
@@ -465,44 +461,58 @@ export default function HistorialPage() {
           Ayer
         </Button>
 
-        <DatePicker
-          selectionMode="between"
-          value={dateRange}
-          onChange={(range) => {
-            setDateRange(range);
-            setDatePreset("range");
-          }}
-          placeholder="Rango"
-          dateStyle="short"
-          size="sm"
-          className="w-48"
-        />
+        <div className="w-48 shrink-0">
+          <DatePicker
+            selectionMode="between"
+            value={dateRange}
+            onChange={(range) => {
+              setDateRange(range);
+              setDatePreset("range");
+            }}
+            placeholder="Rango"
+            dateStyle="short"
+            size="sm"
+          />
+        </div>
 
-        <Select
-          value={farmFilter}
-          placeholder="Todas las granjas"
-          onValueChange={(value) => setFarmFilter(value)}
-          size="sm"
-          className="w-44"
-        >
-          <option value="">Todas las granjas</option>
-          {catalogs.farms.map((farm) => (
-            <option key={farm.id} value={farm.id}>{farm.nombre}</option>
-          ))}
-        </Select>
+        <div className="w-44 shrink-0">
+          <Select
+            value={farmFilter}
+            placeholder="Todas las granjas"
+            onValueChange={(value) => setFarmFilter(value)}
+            size="sm"
+          >
+            <option value="">Todas las granjas</option>
+            {catalogs.farms.map((farm) => (
+              <option key={farm.id} value={farm.id}>{farm.nombre}</option>
+            ))}
+          </Select>
+        </div>
 
         <span className="ml-auto text-sm text-zinc-500">
           {filteredRecords.length} de {records.length} registro{records.length !== 1 ? "s" : ""}
         </span>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={filteredRecords}
-        rowKey={(row) => row.id}
-        stickyHeader
-        color="neutral"
-      />
+      {filteredRecords.length === 0 ? (
+        <ListEmptyState
+          icon={ClipboardList}
+          title={records.length === 0 ? "Sin registros" : "Sin resultados"}
+          description={
+            records.length === 0
+              ? "Aún no hay capturas de mortalidad. Crea el primer registro desde Mortalidad."
+              : "No se encontraron registros con los filtros actuales. Intenta ajustar los filtros."
+          }
+        />
+      ) : (
+        <DataTable
+          columns={columns}
+          data={filteredRecords}
+          rowKey={(row) => row.id}
+          stickyHeader
+          color="neutral"
+        />
+      )}
 
       <ConfirmDialogHost />
 
