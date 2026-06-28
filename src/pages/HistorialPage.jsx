@@ -56,10 +56,63 @@ export default function HistorialPage() {
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState("");
 
+  function normalizeServerRecord(row) {
+    const auditName = row.audit?.updatedByName || row.audit?.createdByName || "";
+    return {
+      id: row.clientId || row.id,
+      module: "mortalidad",
+      syncStatus: "synced",
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      payload: {
+        fecha: row.fecha,
+        granjaId: row.granjaId,
+        galponId: row.galponId,
+        loteId: row.loteId,
+        data: {
+          mortalidad: row.data?.mortalidad ?? 0,
+          sexo: row.data?.sexo || "mixto",
+          causaMuerte: row.data?.causaMuerte || "",
+        },
+        meta: row.meta || {},
+        audit: {
+          createdAt: row.audit?.clientCreatedAt || row.createdAt,
+          updatedAt: row.audit?.clientUpdatedAt || row.updatedAt,
+          updatedBy: {
+            id: String(row.updatedBy || row.createdBy || ""),
+            nombre: auditName,
+            username: auditName,
+            avatarId: null,
+          },
+        },
+      },
+    };
+  }
+
   async function loadData(active) {
     const [nextRecords, nextCatalogs] = await Promise.all([getSyncQueue(), getLocalCatalogs()]);
     if (active !== undefined && !active()) return;
-    setRecords(filterRecords(nextRecords));
+
+    let merged = filterRecords(nextRecords);
+
+    if (can("records.view")) {
+      try {
+        const serverRes = await api("records", { method: "GET", accessToken });
+        if (serverRes?.success && Array.isArray(serverRes.data)) {
+          const localIds = new Set(nextRecords.map((r) => r.id));
+          for (const row of serverRes.data) {
+            const cid = row.clientId || row.id;
+            if (!cid || localIds.has(cid)) continue;
+            localIds.add(cid);
+            merged.push(normalizeServerRecord(row));
+          }
+        }
+      } catch {
+      }
+    }
+
+    setRecords(merged.sort((a, b) => new Date(b.payload?.fecha || b.createdAt) - new Date(a.payload?.fecha || a.createdAt)));
+
     setCatalogs(filterCatalogs(nextCatalogs));
   }
 
