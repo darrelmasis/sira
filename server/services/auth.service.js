@@ -2,8 +2,10 @@ import argon2 from "argon2"
 import User from "../models/User.js"
 import { signAccessToken, signRefreshToken } from "../utils/jwt.js"
 
-export async function loginUser(username, password) {
-  const user = await User.findOne({ username })
+export async function loginUser(loginId, password) {
+  const user = await User.findOne({
+    $or: [{ username: loginId }, { email: loginId }],
+  })
 
   if (!user || !user.active) {
     throw new Error("INVALID_CREDENTIALS")

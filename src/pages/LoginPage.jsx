@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Alert,
   Button,
@@ -56,11 +56,11 @@ export default function LoginPage() {
           </div>
 
           <FormControl controlId="username" required>
-            <Label>Usuario</Label>
+            <Label>Usuario o correo</Label>
             <Input
               id="username"
               autoComplete="username"
-              placeholder="Ej. jperez"
+              placeholder="usuario@empresa.com"
               value={username}
               onChange={(event) => setUsername(event.target.value)}
             />
@@ -84,6 +84,15 @@ export default function LoginPage() {
           <Button type="submit" loading={loading} loadingText="Entrando..." className="w-full">
             Iniciar sesión
           </Button>
+
+          <div className="text-center">
+            <Link
+              to="/forgot-password"
+              className="text-sm text-brand-600 hover:text-brand-700 dark:text-brand-400"
+            >
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </div>
         </form>
       </PageSection>
     </div>
