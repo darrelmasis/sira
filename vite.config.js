@@ -57,7 +57,7 @@ export default defineConfig({
     siraApiPlugin(),
     svgr(),
     VitePWA({
-      registerType: "autoUpdate",
+      injectRegister: false,
       includeAssets: ["favicon.svg"],
       manifest: {
         name: "SIRA - Registro Avícola",
