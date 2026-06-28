@@ -2,12 +2,35 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { api } from "@/lib/api";
 import { DEFAULT_PERMISSIONS, setPermissionsMap } from "./permissions";
 
+const SESSION_CACHE_KEY = "sira_session";
+
 export const AuthContext = createContext(null);
 
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) throw new Error("useAuth debe usarse dentro de AuthProvider");
   return context;
+}
+
+function cacheSession(user, permissions) {
+  try {
+    localStorage.setItem(SESSION_CACHE_KEY, JSON.stringify({ user, permissions }));
+  } catch {}
+}
+
+function loadCachedSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function clearCachedSession() {
+  try {
+    localStorage.removeItem(SESSION_CACHE_KEY);
+  } catch {}
 }
 
 export function AuthProvider({ children }) {
@@ -23,13 +46,18 @@ export function AuthProvider({ children }) {
   }, []);
 
   const updateUser = useCallback((patch) => {
-    setUser((current) => (current ? { ...current, ...patch } : current));
+    setUser((current) => {
+      const next = current ? { ...current, ...patch } : current;
+      if (next) cacheSession(next, null);
+      return next;
+    });
   }, []);
 
   const login = ({ user, accessToken, permissions }) => {
     setUser(user);
     setAccessToken(accessToken);
     if (permissions) applyPermissions(permissions);
+    cacheSession(user, permissions);
   };
 
   const logout = async () => {
@@ -41,6 +69,7 @@ export function AuthProvider({ children }) {
     setUser(null);
     setAccessToken(null);
     applyPermissions(DEFAULT_PERMISSIONS);
+    clearCachedSession();
   };
 
   const refreshSession = useCallback(async () => {
@@ -50,6 +79,7 @@ export function AuthProvider({ children }) {
         setUser(response.data.user);
         setAccessToken(response.data.accessToken);
         if (response.data.permissions) applyPermissions(response.data.permissions);
+        cacheSession(response.data.user, response.data.permissions);
         return response.data;
       }
     } catch (error) {
@@ -59,8 +89,18 @@ export function AuthProvider({ children }) {
   }, [applyPermissions]);
 
   useEffect(() => {
-    refreshSession().finally(() => setIsLoading(false));
-  }, [refreshSession]);
+    (async () => {
+      const result = await refreshSession();
+      if (!result) {
+        const cached = loadCachedSession();
+        if (cached) {
+          setUser(cached.user);
+          if (cached.permissions) applyPermissions(cached.permissions);
+        }
+      }
+      setIsLoading(false);
+    })();
+  }, [refreshSession, applyPermissions]);
 
   const value = useMemo(
     () => ({
