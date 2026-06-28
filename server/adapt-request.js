@@ -91,8 +91,16 @@ export function createApiResponse(res) {
 }
 
 export async function handleApiRequest(incomingReq, serverRes, handler) {
-  const apiReq = buildApiRequest(incomingReq);
-  apiReq.body = await readJsonBody(incomingReq);
-  const apiRes = createApiResponse(serverRes);
-  await handler(apiReq, apiRes);
+  try {
+    const apiReq = buildApiRequest(incomingReq);
+    apiReq.body = await readJsonBody(incomingReq);
+    const apiRes = createApiResponse(serverRes);
+    await handler(apiReq, apiRes);
+  } catch (error) {
+    console.error("[api] handleApiRequest error:", error);
+    if (!serverRes.headersSent) {
+      serverRes.writeHead(500, { "Content-Type": "application/json" });
+      serverRes.end(JSON.stringify({ success: false, message: "Error interno del servidor" }));
+    }
+  }
 }
