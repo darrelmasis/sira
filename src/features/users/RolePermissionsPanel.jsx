@@ -103,7 +103,7 @@ export default function RolePermissionsPanel() {
   }
 
   if (loading) {
-    return <TableSkeleton columns={3} rows={4} showToolbar showActionsColumn />;
+    return <TableSkeleton columns={3} rows={4} showActionsColumn />;
   }
 
   return (

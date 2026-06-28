@@ -97,6 +97,11 @@ export function useCatalogCrud(config) {
   const columns = config.buildColumns({ meta, openEdit, handleDelete });
   const prerequisiteEmpty = config.getPrerequisiteEmpty?.(meta);
   const empty = config.getEmpty?.(meta, data);
+  const hasActionsColumn = columns.length > 0 && columns[columns.length - 1].key === "actions";
+  const skeleton = {
+    columns: hasActionsColumn ? columns.length - 1 : columns.length,
+    rows: config.skeleton?.rows ?? 5,
+  };
 
   return {
     data,
@@ -118,6 +123,6 @@ export function useCatalogCrud(config) {
     createLabel: config.createLabel,
     modalTitles: config.modalTitles,
     renderForm: config.renderForm,
-    skeleton: config.skeleton,
+    skeleton,
   };
 }

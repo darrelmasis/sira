@@ -141,7 +141,7 @@ export default function HistorialPage() {
   );
 
   if (loading) {
-    return <TableSkeleton columns={6} rows={6} showHeader />;
+    return <TableSkeleton columns={6} rows={6} />;
   }
 
   if (records.length === 0) {

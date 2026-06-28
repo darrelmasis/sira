@@ -260,7 +260,7 @@ export default function UsersPage() {
             </div>
 
             {loading ? (
-              <TableSkeleton columns={4} rows={5} showToolbar showActionsColumn />
+              <TableSkeleton columns={4} rows={5} showActionsColumn />
             ) : users.length === 0 ? (
               <ListEmptyState
                 icon={Users}

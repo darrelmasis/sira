@@ -13,7 +13,6 @@ export default function CatalogCrudPanel({ config }) {
       <TableSkeleton
         columns={crud.skeleton.columns}
         rows={crud.skeleton.rows}
-        showToolbar
         showActionsColumn
       />
     );
