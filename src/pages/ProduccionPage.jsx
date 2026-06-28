@@ -332,7 +332,7 @@ export default function ProduccionPage() {
         ))}
       </section>
 
-      <div className="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200/80 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200/80 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] dark:shadow-[0_-4px_12px_rgba(0,0,0,0.2)]">
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
           <span className="font-semibold text-brand-600">I: {totales.incubable}</span>
           <span className="font-semibold text-sky-600">C: {totales.comercial}</span>
