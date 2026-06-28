@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Alert, Button, FormControl, Input, Label, Select, Textarea, toast, DatePicker } from "quickit-ui";
-import { Save } from "lucide-react";
+import { RefreshCcw, Save } from "lucide-react";
 import NumberStepper from "@/components/NumberStepper";
 import FormSectionSkeleton from "@/components/feedback/FormSectionSkeleton";
 import { useAuth } from "@/features/auth/AuthContext";
@@ -10,6 +10,7 @@ import { usePermissions } from "@/features/auth/permissions";
 import { getLocalCatalogs } from "@/features/catalogs/catalogStore";
 import { enqueueRecord } from "@/features/sync/syncQueue";
 import { useSync } from "@/features/sync/SyncProvider";
+import { subscribeSync } from "@/features/sync/syncEngine";
 import { formatDateInput, parseDateInput, todayInput } from "@/lib/datetime";
 import { normalizeId } from "@/lib/catalog-utils";
 
@@ -51,7 +52,7 @@ export default function MortalidadPage() {
   const { user } = useAuth();
   const { validateRecordDate, dateConstraints, can } = usePermissions();
   const { filterCatalogs, hasAssignedFarms, canAccessFarm } = useFarmAccess();
-  const { syncAfterSave, isOnline } = useSync();
+  const { syncAfterSave, syncNow, isSyncing, isOnline } = useSync();
   const [values, setValues] = useState(initialForm);
   const [catalogs, setCatalogs] = useState({ farms: [], sheds: [], lots: [] });
   const [loadingCatalogs, setLoadingCatalogs] = useState(true);
@@ -68,27 +69,34 @@ export default function MortalidadPage() {
     [catalogs.lots, values.granjaId],
   );
 
+  const loadCatalogs = useCallback(async () => {
+    const nextCatalogs = await getLocalCatalogs();
+    const scoped = filterCatalogs(nextCatalogs);
+    setCatalogs(scoped);
+
+    if (scoped.farms.length === 1) {
+      setValues((current) => ({ ...current, granjaId: scoped.farms[0].id }));
+    }
+  }, [filterCatalogs]);
+
   useEffect(() => {
     let active = true;
 
-    getLocalCatalogs()
-      .then((nextCatalogs) => {
-        if (!active) return;
-        const scoped = filterCatalogs(nextCatalogs);
-        setCatalogs(scoped);
+    loadCatalogs().finally(() => {
+      if (active) setLoadingCatalogs(false);
+    });
 
-        if (scoped.farms.length === 1) {
-          setValues((current) => ({ ...current, granjaId: scoped.farms[0].id }));
-        }
-      })
-      .finally(() => {
-        if (active) setLoadingCatalogs(false);
-      });
+    const unsub = subscribeSync((event) => {
+      if (event.type === "sync-complete" && active) {
+        loadCatalogs();
+      }
+    });
 
     return () => {
       active = false;
+      unsub();
     };
-  }, [filterCatalogs]);
+  }, [loadCatalogs]);
 
   function updateField(field, value) {
     setValues((current) => {
@@ -188,7 +196,22 @@ export default function MortalidadPage() {
       <Alert
         color="warning"
         title="Catálogos incompletos"
-        description="Necesitas granjas, galpones y lotes cargados. Ve a Configuración del sistema → Actualizar catálogos o pide a un administrador que complete los catálogos."
+        description={
+          <div className="space-y-3">
+            <p>Necesitas granjas, galpones y lotes cargados. Si es tu primer inicio de sesión, los catálogos se están descargando automáticamente.</p>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              color="neutral"
+              loading={isSyncing}
+              onClick={syncNow}
+            >
+              <RefreshCcw aria-hidden="true" className="size-3.5" />
+              Sincronizar ahora
+            </Button>
+          </div>
+        }
       />
     );
   }
