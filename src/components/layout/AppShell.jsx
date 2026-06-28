@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Badge,
@@ -139,7 +140,12 @@ export default function AppShell() {
   const { isMobile } = useBreakpoint();
   const { title, subtitle } = getPageMeta(location.pathname);
 
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const pendingCount = summary.pending + summary.failed;
+
+  function closeDrawer() {
+    setDrawerOpen(false);
+  }
 
   async function handleLogout() {
     await logout();
@@ -152,7 +158,7 @@ export default function AppShell() {
         <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4">
           <div className="flex items-center gap-2 lg:w-56">
             {isMobile && (
-              <Drawer placement="left">
+              <Drawer placement="left" open={drawerOpen} onOpenChange={setDrawerOpen}>
                 <Drawer.Trigger asChild>
                   <Button
                     type="button"
@@ -169,7 +175,7 @@ export default function AppShell() {
                     <Drawer.Title>Navegación</Drawer.Title>
                   </Drawer.Header>
                   <Drawer.Body>
-                    <SidebarNav can={can} />
+                    <SidebarNav can={can} onNavigate={closeDrawer} />
                   </Drawer.Body>
                 </Drawer.Content>
               </Drawer>

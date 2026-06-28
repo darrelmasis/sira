@@ -14,7 +14,7 @@ import {
   FormDescription,
   toast,
 } from "quickit-ui";
-import { ClipboardList, Save } from "lucide-react";
+import { ClipboardList, Eye, Save } from "lucide-react";
 import NumberStepper from "@/components/NumberStepper";
 import UserAvatar from "@/components/UserAvatar";
 import TableSkeleton from "@/components/feedback/TableSkeleton";
@@ -47,10 +47,12 @@ export default function HistorialPage() {
   const [catalogs, setCatalogs] = useState({ farms: [], sheds: [], lots: [] });
   const [loading, setLoading] = useState(true);
 
+  const canView = can("records.viewDetail");
   const canEdit = can("records.edit");
   const canDelete = can("records.delete");
-  const hasActions = canEdit || canDelete;
+  const hasActions = canView || canEdit || canDelete;
 
+  const [viewRecord, setViewRecord] = useState(null);
   const [editRecord, setEditRecord] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [editSaving, setEditSaving] = useState(false);
@@ -143,6 +145,10 @@ export default function HistorialPage() {
     }),
     [catalogs],
   );
+
+  function openViewDetail(record) {
+    setViewRecord(record);
+  }
 
   function openEdit(record) {
     const p = record.payload;
@@ -356,6 +362,7 @@ export default function HistorialPage() {
         align: "right",
         render: (row) => (
           <RowActionsDropdown
+            onView={canView ? () => openViewDetail(row) : undefined}
             onEdit={canEdit ? () => openEdit(row) : undefined}
             onDelete={canDelete ? () => handleDelete(row) : undefined}
           />
@@ -364,7 +371,7 @@ export default function HistorialPage() {
     }
 
     return cols;
-  }, [catalogMaps, canEdit, canDelete, hasActions]);
+  }, [catalogMaps, canView, canEdit, canDelete, hasActions]);
 
   function updateEditField(field, value) {
     setEditForm((current) => {
@@ -407,6 +414,93 @@ export default function HistorialPage() {
       />
 
       <ConfirmDialogHost />
+
+      <Modal open={!!viewRecord} onOpenChange={(open) => { if (!open) setViewRecord(null); }}>
+        <Modal.Content>
+          <Modal.Header>
+            <Modal.Title>Detalle del registro</Modal.Title>
+            <FormDescription>Información completa del registro de mortalidad.</FormDescription>
+          </Modal.Header>
+
+          <Modal.Body className="space-y-4">
+            {viewRecord && (() => {
+              const p = viewRecord.payload;
+              const farmId = normalizeId(p.granjaId);
+              const shedId = normalizeId(p.galponId);
+              const lotId = normalizeId(p.loteId);
+              const farm = catalogMaps.farms[farmId] || farmId || "—";
+              const shed = catalogMaps.sheds[shedId] || shedId || "—";
+              const lot = catalogMaps.lots[lotId] || lotId || "—";
+              const actor = p.audit?.updatedBy;
+              const actorName = actor?.nombre || actor?.username || "—";
+              const isCurrentUser = actor && currentUser && String(actor.id) === String(currentUser._id || currentUser.id);
+              const meta = syncStatusMeta[viewRecord.syncStatus] || syncStatusMeta.pending;
+
+              return (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <Label>Fecha</Label>
+                    <p className="text-sm">{formatDateShort(p.fecha)}</p>
+                  </div>
+                  <div>
+                    <Label>Mortalidad</Label>
+                    <p className="text-sm font-semibold tabular-nums">{p.data?.mortalidad ?? 0}</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label>Ubicación</Label>
+                    <p className="text-sm">{farm} · {shed} · Lote {lot}</p>
+                  </div>
+                  <div>
+                    <Label>Sexo</Label>
+                    <p className="text-sm capitalize">{p.data?.sexo || "mixto"}</p>
+                  </div>
+                  <div>
+                    <Label>Estado de sincronización</Label>
+                    <Badge color={meta.color} variant="soft">{meta.label}</Badge>
+                  </div>
+                  {p.data?.causaMuerte && (
+                    <div className="md:col-span-2">
+                      <Label>Causa de muerte</Label>
+                      <p className="text-sm whitespace-pre-wrap">{p.data.causaMuerte}</p>
+                    </div>
+                  )}
+                  <div>
+                    <Label>Modificado por</Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <UserAvatar
+                        user={isCurrentUser ? { ...actor, avatarId: currentUser.avatarId } : actor}
+                        nombre={actorName}
+                        size="sm"
+                      />
+                      <span className="text-sm">{actorName}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Última modificación</Label>
+                    <p className="text-sm">{formatDateTime(p.audit?.updatedAt || viewRecord.updatedAt)}</p>
+                  </div>
+                  <div>
+                    <Label>Creado</Label>
+                    <p className="text-sm">{formatDateTime(p.audit?.createdAt || viewRecord.createdAt)}</p>
+                  </div>
+                  {viewRecord.syncStatus === "failed" && viewRecord.syncError && (
+                    <div className="md:col-span-2">
+                      <Label>Error de sincronización</Label>
+                      <p className="text-sm text-danger-600">{viewRecord.syncError}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </Modal.Body>
+
+          <Modal.Actions>
+            <Modal.Action type="button" variant="ghost" onClick={() => setViewRecord(null)}>
+              Cerrar
+            </Modal.Action>
+          </Modal.Actions>
+        </Modal.Content>
+      </Modal>
 
       <Modal open={!!editRecord} onOpenChange={(open) => { if (!open) { setEditRecord(null); setEditForm(null); } }}>
         <Modal.Content onOpenAutoFocus={(e) => e.preventDefault()}>

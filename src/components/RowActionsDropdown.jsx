@@ -1,7 +1,7 @@
 import { Button, Dropdown } from "quickit-ui";
-import { Edit2, MoreVertical, Trash2 } from "lucide-react";
+import { Edit2, Eye, MoreVertical, Trash2 } from "lucide-react";
 
-export default function RowActionsDropdown({ onEdit, onDelete, deleteLabel = "Eliminar" }) {
+export default function RowActionsDropdown({ onView, onEdit, onDelete, deleteLabel = "Eliminar" }) {
   return (
     <Dropdown>
       <Dropdown.Trigger asChild>
@@ -10,6 +10,12 @@ export default function RowActionsDropdown({ onEdit, onDelete, deleteLabel = "El
         </Button>
       </Dropdown.Trigger>
       <Dropdown.Content align="end" className="min-w-36">
+        {onView && (
+          <Dropdown.Item onClick={onView}>
+            <Eye aria-hidden="true" className="size-4" />
+            Ver detalle
+          </Dropdown.Item>
+        )}
         {onEdit && (
           <Dropdown.Item onClick={onEdit}>
             <Edit2 aria-hidden="true" className="size-4" />
