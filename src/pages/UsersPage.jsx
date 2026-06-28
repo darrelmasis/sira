@@ -9,7 +9,6 @@ import {
   FormDescription,
   Input,
   Label,
-  Modal,
   Select,
   Tabs,
   toast,
@@ -23,6 +22,7 @@ import { usePermissions } from "@/features/auth/permissions";
 import UserAvatar from "@/components/UserAvatar";
 import RolePermissionsPanel from "@/features/users/RolePermissionsPanel";
 import PageTable from "@/components/data/PageTable";
+import AppModal from "@/components/ui/AppModal";
 import RowActionsDropdown from "@/components/ui/RowActionsDropdown";
 import { formatDateTime } from "@/lib/datetime";
 
@@ -278,19 +278,19 @@ export default function UsersPage() {
               }
             />
 
-            <Modal open={modalOpen} onOpenChange={setModalOpen}>
-              <Modal.Content>
-                <form onSubmit={handleSubmit}>
-                  <Modal.Header>
-                    <Modal.Title>{editing ? "Editar usuario" : "Nuevo usuario"}</Modal.Title>
+            <AppModal open={modalOpen} onOpenChange={setModalOpen} size="lg">
+              <AppModal.Content>
+                <AppModal.Form onSubmit={handleSubmit}>
+                  <AppModal.Header>
+                    <AppModal.Title>{editing ? "Editar usuario" : "Nuevo usuario"}</AppModal.Title>
                     <FormDescription>
                       {editing
                         ? "Actualiza rol, acceso a granjas o credenciales."
                         : "Crea un usuario con acceso limitado por granja."}
                     </FormDescription>
-                  </Modal.Header>
+                  </AppModal.Header>
 
-                  <Modal.Body className="space-y-4">
+                  <AppModal.Body className="space-y-4">
                     <div className="grid gap-4 sm:grid-cols-2">
                       <FormControl controlId="nombre" required>
                         <Label>Nombre</Label>
@@ -380,20 +380,20 @@ export default function UsersPage() {
                         </div>
                       )}
                     </div>
-                  </Modal.Body>
+                  </AppModal.Body>
 
-                  <Modal.Actions>
-                    <Modal.Action type="button" variant="ghost" onClick={() => setModalOpen(false)}>
+                  <AppModal.Actions>
+                    <AppModal.Action type="button" variant="ghost" onClick={() => setModalOpen(false)}>
                       Cancelar
-                    </Modal.Action>
-                    <Modal.Action type="submit" loading={saving} loadingText="Guardando...">
+                    </AppModal.Action>
+                    <AppModal.Action type="submit" loading={saving} loadingText="Guardando...">
                       <Plus aria-hidden="true" className="size-4" />
                       Guardar
-                    </Modal.Action>
-                  </Modal.Actions>
-                </form>
-              </Modal.Content>
-            </Modal>
+                    </AppModal.Action>
+                  </AppModal.Actions>
+                </AppModal.Form>
+              </AppModal.Content>
+            </AppModal>
           </Tabs.Content>
         )}
 

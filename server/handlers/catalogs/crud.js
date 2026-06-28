@@ -7,6 +7,8 @@ import { hasPermission } from "../../utils/permissions.js";
 import { buildCatalogFilter, validateFarmAccess } from "../../utils/farmAccess.js";
 import { validateCatalogPayload } from "../../validators/catalogs.js";
 import { success, failure } from "../../utils/response.js";
+import { dateOnlyToLocalDate } from "../../utils/dates.js";
+import { createIntakeMortalityRecords } from "../../utils/inventory.js";
 
 const RESOURCES = {
   granjas: Farm,
@@ -25,6 +27,50 @@ function serializeCatalogRow(row) {
     loteId: row.loteId ? String(row.loteId) : row.loteId,
     galponId: row.galponId ? String(row.galponId) : row.galponId,
   };
+}
+
+function extractPlacementExtras(body) {
+  const {
+    mortalidadAlojamientoHembras = 0,
+    mortalidadAlojamientoMachos = 0,
+    cerrarDistribucion,
+    granjaId,
+    ...placementData
+  } = body;
+
+  return {
+    placementData,
+    mortalidadAlojamientoHembras,
+    mortalidadAlojamientoMachos,
+    cerrarDistribucion: Boolean(cerrarDistribucion),
+  };
+}
+
+async function syncLotFechaAlojamiento(lotId, fechaAlojamiento) {
+  const lot = await Lot.findById(lotId);
+  if (!lot || lot.fechaAlojamiento) return;
+
+  const parsed = dateOnlyToLocalDate(fechaAlojamiento) || new Date(fechaAlojamiento);
+  if (!Number.isNaN(parsed.getTime())) {
+    lot.fechaAlojamiento = parsed;
+    await lot.save();
+  }
+}
+
+async function handlePlacementCreateSideEffects(user, body) {
+  const lot = await Lot.findById(body.loteId);
+  if (!lot) return;
+
+  await syncLotFechaAlojamiento(lot._id, body.fechaAlojamiento);
+
+  await createIntakeMortalityRecords({
+    user,
+    lot,
+    galponId: body.galponId,
+    fechaAlojamiento: body.fechaAlojamiento,
+    mortalidadHembras: body.mortalidadAlojamientoHembras,
+    mortalidadMachos: body.mortalidadAlojamientoMachos,
+  });
 }
 
 export function createCatalogCrudHandler(resource) {
@@ -69,6 +115,22 @@ export function createCatalogCrudHandler(resource) {
         const validationError = await validateCatalogPayload(resource, req.body);
         if (validationError) return failure(res, validationError, 400);
 
+        if (resource === "alojamientos") {
+          const { placementData } = extractPlacementExtras(req.body);
+          const doc = await Placement.create(placementData);
+          await handlePlacementCreateSideEffects(user, req.body);
+          return success(res, serializeCatalogRow(doc.toObject()), 201);
+        }
+
+        if (resource === "lotes" && req.body?.fechaAlojamiento) {
+          const lotPayload = {
+            ...req.body,
+            fechaAlojamiento: dateOnlyToLocalDate(req.body.fechaAlojamiento) || req.body.fechaAlojamiento,
+          };
+          const doc = await Model.create(lotPayload);
+          return success(res, serializeCatalogRow(doc.toObject()), 201);
+        }
+
         const doc = await Model.create(req.body);
         return success(res, serializeCatalogRow(doc.toObject()), 201);
       }
@@ -95,6 +157,13 @@ export function createCatalogCrudHandler(resource) {
           recordId,
         );
         if (validationError) return failure(res, validationError, 400);
+
+        if (resource === "alojamientos") {
+          const { placementData } = extractPlacementExtras({ ...existing, ...updateData });
+          const doc = await Placement.findByIdAndUpdate(recordId, placementData, { new: true });
+          await syncLotFechaAlojamiento(doc.loteId, doc.fechaAlojamiento);
+          return success(res, serializeCatalogRow(doc.toObject()));
+        }
 
         const doc = await Model.findByIdAndUpdate(recordId, updateData, { new: true });
         return success(res, serializeCatalogRow(doc.toObject()));

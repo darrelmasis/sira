@@ -73,3 +73,13 @@ button[aria-haspopup="listbox"] {
 [data-slot="date-picker"] button[aria-haspopup] {
   background-color: var(--sira-input-bg) !important;
 }
+
+/* Modals: form wrappers must participate in the dialog flex column so Body can scroll */
+[role="dialog"] > form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  width: 100%;
+}

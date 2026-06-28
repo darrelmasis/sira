@@ -11,6 +11,9 @@ import syncHandler from "../handlers/sync/sync.js"
 import usersHandler from "../handlers/users/users.js"
 import rolePermissionsHandler from "../handlers/roles/permissions.js"
 import recordsHandler from "../handlers/records/records.js"
+import transfersHandler from "../handlers/transfers/transfers.js"
+import inventoryHandler from "../handlers/inventory/inventory.js"
+import lotDistributionHandler from "../handlers/lots/distribution.js"
 
 export const ROUTES = {
   "auth/login": {
@@ -73,6 +76,11 @@ export const ROUTES = {
     methods: ["GET", "POST", "PUT", "DELETE"],
   },
 
+  "lotes/distribucion": {
+    handler: lotDistributionHandler,
+    methods: ["GET"],
+  },
+
   alojamientos: {
     handler: createCatalogCrudHandler("alojamientos"),
     methods: ["GET", "POST", "PUT", "DELETE"],
@@ -91,5 +99,15 @@ export const ROUTES = {
   records: {
     handler: recordsHandler,
     methods: ["GET", "PUT", "DELETE"],
+  },
+
+  traslados: {
+    handler: transfersHandler,
+    methods: ["GET", "POST"],
+  },
+
+  inventario: {
+    handler: inventoryHandler,
+    methods: ["GET"],
   },
 }

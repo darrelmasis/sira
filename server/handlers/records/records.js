@@ -4,6 +4,7 @@ import { requireAuth } from "../../middleware/auth.js";
 import { hasPermission } from "../../utils/permissions.js";
 import { getFarmScopeFilter, validateFarmAccess } from "../../utils/farmAccess.js";
 import { getAgeWeeks, getEtapa, dateOnlyToLocalDate } from "../../utils/dates.js";
+import { getLotAgeStartDate } from "../../utils/inventory.js";
 import { success, failure } from "../../utils/response.js";
 import mongoose from "mongoose";
 
@@ -31,6 +32,7 @@ function serializeRecord(row) {
 }
 
 async function enrichRecord(data) {
+  const lotStart = await getLotAgeStartDate(data.loteId);
   const placement = await Placement.findOne({
     loteId: toObjectId(data.loteId),
     galponId: toObjectId(data.galponId),
@@ -39,7 +41,12 @@ async function enrichRecord(data) {
     .sort({ fechaAlojamiento: -1 })
     .lean();
 
-  const edad = placement ? getAgeWeeks(placement.fechaAlojamiento, data.fecha) : Number(data.edad || 0);
+  const fecha = dateOnlyToLocalDate(data.fecha) || new Date(data.fecha);
+  const edad = lotStart
+    ? getAgeWeeks(lotStart, fecha)
+    : placement
+      ? getAgeWeeks(placement.fechaAlojamiento, fecha)
+      : Number(data.edad || 0);
   const etapa = data.etapa || getEtapa(edad);
 
   const base = {
@@ -89,6 +96,9 @@ export default async function recordsHandler(req, res) {
       const scope = getFarmScopeFilter(user);
       const filter = {};
       if (scope !== null) {
+        if (scope._empty) {
+          return success(res, []);
+        }
         filter.granjaId = scope;
       }
 

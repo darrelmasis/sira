@@ -5,6 +5,7 @@ import Lot from "../models/Lot.js";
 import Placement from "../models/Placement.js";
 
 import { dateOnlyRange } from "../utils/dates.js";
+import { getLotAllocation } from "../utils/inventory.js";
 
 function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -76,6 +77,11 @@ export async function validateLotPayload(body, excludeId) {
   if (!Number.isFinite(hembras) || hembras < 0) return "Hembras debe ser cero o mayor.";
   if (!Number.isFinite(machos) || machos < 0) return "Machos debe ser cero o mayor.";
 
+  if (body?.fechaAlojamiento) {
+    const range = dateOnlyRange(body.fechaAlojamiento);
+    if (!range) return "Fecha de alojamiento del lote inválida.";
+  }
+
   return "";
 }
 
@@ -115,6 +121,59 @@ export async function validatePlacementPayload(body, excludeId) {
 
   const exists = await Placement.findOne(filter).lean();
   if (exists) return "Ya existe un alojamiento para ese lote, galpón y fecha.";
+
+  const activeDuplicateFilter = {
+    loteId: body.loteId,
+    galponId: body.galponId,
+    estado: { $ne: "cerrado" },
+  };
+  if (excludeId && mongoose.Types.ObjectId.isValid(excludeId)) {
+    activeDuplicateFilter._id = { $ne: excludeId };
+  }
+
+  const activeDuplicate = await Placement.findOne(activeDuplicateFilter).lean();
+  if (activeDuplicate) {
+    return "Ya existe un alojamiento activo para ese lote en este galpón.";
+  }
+
+  if (hembras <= 0 && machos <= 0) {
+    return "Debes registrar al menos una hembra o un macho en el alojamiento.";
+  }
+
+  const allocation = await getLotAllocation(body.loteId, excludeId || null);
+  if (!allocation) return "No se pudo calcular la distribución del lote.";
+
+  const mortH = Number(body?.mortalidadAlojamientoHembras ?? 0);
+  const mortM = Number(body?.mortalidadAlojamientoMachos ?? 0);
+
+  if (!excludeId) {
+    if (!Number.isFinite(mortH) || mortH < 0 || !Number.isFinite(mortM) || mortM < 0) {
+      return "La mortalidad de alojamiento debe ser cero o mayor.";
+    }
+
+    const pendingAfterHembras = allocation.pendingHembras - hembras - mortH;
+    const pendingAfterMachos = allocation.pendingMachos - machos - mortM;
+
+    if (pendingAfterHembras < 0) {
+      return "La suma de hembras alojadas y mortalidad de alojamiento supera lo pendiente del lote.";
+    }
+    if (pendingAfterMachos < 0) {
+      return "La suma de machos alojados y mortalidad de alojamiento supera lo pendiente del lote.";
+    }
+
+    if (body?.cerrarDistribucion) {
+      if (pendingAfterHembras > 0 || pendingAfterMachos > 0) {
+        return `Para cerrar la distribución debes alojar o registrar como mortalidad las aves pendientes (${pendingAfterHembras} hembras, ${pendingAfterMachos} machos).`;
+      }
+    }
+  }
+
+  if (hembras > allocation.pendingHembras) {
+    return `Las hembras exceden lo pendiente por alojar (${allocation.pendingHembras}).`;
+  }
+  if (machos > allocation.pendingMachos) {
+    return `Los machos exceden lo pendiente por alojar (${allocation.pendingMachos}).`;
+  }
 
   return "";
 }

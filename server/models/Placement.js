@@ -29,6 +29,18 @@ const PlacementSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    tipo: {
+      type: String,
+      enum: ["levante", "postura"],
+      default: "levante",
+      index: true,
+    },
+    estado: {
+      type: String,
+      enum: ["activo", "cerrado"],
+      default: "activo",
+      index: true,
+    },
   },
   {
     timestamps: { createdAt: true, updatedAt: false },

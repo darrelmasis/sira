@@ -49,6 +49,8 @@ function validateMortalidad(values, validateRecordDate) {
   if (!values.loteId.trim()) errors.loteId = "El lote es obligatorio.";
   if (values.mortalidad === "" || Number(values.mortalidad) < 1)
     errors.mortalidad = "La mortalidad debe ser mayor a cero.";
+  if (!values.causaMuerte.trim())
+    errors.causaMuerte = "La causa de muerte es obligatoria.";
   return errors;
 }
 
@@ -71,6 +73,19 @@ function validateCatalogRefs(values, catalogs) {
   );
   if (!lot)
     errors.loteId = "El lote seleccionado no está disponible. Actualiza catálogos.";
+
+  // Validate galponId matches an active placement for the selected lot
+  if (values.loteId && values.galponId) {
+    const lotPlacements = catalogs.placements.filter(
+      (p) =>
+        normalizeId(p.loteId) === normalizeId(values.loteId) &&
+        p.estado !== "cerrado",
+    );
+    const validShedIds = new Set(lotPlacements.map((p) => normalizeId(p.galponId)));
+    if (!validShedIds.has(normalizeId(values.galponId))) {
+      errors.galponId = "El galpón no tiene un alojamiento activo para este lote. Selecciona un galpón válido.";
+    }
+  }
 
   return errors;
 }
@@ -101,7 +116,9 @@ export default function MortalidadPage() {
   const filteredSheds = useMemo(() => {
     if (!values.loteId) return [];
     const lotPlacements = catalogs.placements.filter(
-      (p) => normalizeId(p.loteId) === normalizeId(values.loteId)
+      (p) =>
+        normalizeId(p.loteId) === normalizeId(values.loteId) &&
+        p.estado !== "cerrado",
     );
     const validShedIds = new Set(lotPlacements.map((p) => normalizeId(p.galponId)));
     return catalogs.sheds.filter((shed) => validShedIds.has(normalizeId(shed.id)));
@@ -357,12 +374,9 @@ export default function MortalidadPage() {
               ) : (
                 <Input
                   id="galponId"
-                  placeholder={!values.loteId ? "Selecciona un lote primero" : "ID de galpón"}
-                  value={values.galponId}
-                  onChange={(event) =>
-                    updateField("galponId", event.target.value)
-                  }
-                  disabled={!values.loteId && filteredSheds.length === 0}
+                  placeholder={values.loteId ? "Sin galpones con alojamiento activo" : "Selecciona un lote primero"}
+                  value=""
+                  disabled
                 />
               )}
               <FormMessage>{fieldErrors.galponId}</FormMessage>
@@ -423,18 +437,42 @@ export default function MortalidadPage() {
             <FormMessage>{fieldErrors.mortalidad}</FormMessage>
           </FormControl>
 
-          <FormControl controlId="causaMuerte">
+          <FormControl controlId="causaMuerte" required invalid={!!fieldErrors.causaMuerte}>
             <Label>Causa de muerte</Label>
-            <Textarea
+            <Select
               id="causaMuerte"
-              minRows={3}
-              placeholder="Ej. estrés calórico, problemas respiratorios..."
-              value={values.causaMuerte}
-              onChange={(event) =>
-                updateField("causaMuerte", event.target.value)
-              }
-            />
+              value={["Mortalidad natural", "Necropsia", "Ovoscopia", "Descarte", "Venta"].includes(values.causaMuerte) ? values.causaMuerte : (values.causaMuerte ? "Otro" : "")}
+              placeholder="Seleccionar causa..."
+              onValueChange={(val) => {
+                if (val === "Otro") {
+                  updateField("causaMuerte", "Otro: ");
+                } else {
+                  updateField("causaMuerte", val);
+                }
+              }}
+            >
+              <option value="">Seleccionar causa...</option>
+              <option value="Mortalidad natural">Mortalidad natural</option>
+              <option value="Necropsia">Necropsia</option>
+              <option value="Ovoscopia">Ovoscopia</option>
+              <option value="Descarte">Descarte</option>
+              <option value="Venta">Venta</option>
+              <option value="Otro">Otro (especificar)</option>
+            </Select>
+            <FormMessage>{fieldErrors.causaMuerte}</FormMessage>
           </FormControl>
+
+          {(!["Mortalidad natural", "Necropsia", "Ovoscopia", "Descarte", "Venta", ""].includes(values.causaMuerte) || values.causaMuerte.startsWith("Otro: ")) && (
+            <FormControl controlId="causaMuerteEspecificar" required invalid={!!fieldErrors.causaMuerte}>
+              <Label>Especificar causa</Label>
+              <Input
+                id="causaMuerteEspecificar"
+                placeholder="Escribe la causa detallada aquí..."
+                value={values.causaMuerte.startsWith("Otro: ") ? values.causaMuerte.replace("Otro: ", "") : values.causaMuerte}
+                onChange={(e) => updateField("causaMuerte", `Otro: ${e.target.value}`)}
+              />
+            </FormControl>
+          )}
         </div>
       </section>
 

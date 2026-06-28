@@ -40,6 +40,16 @@ const LotSchema = new mongoose.Schema(
       min: 0,
       default: 0,
     },
+    etapa: {
+      type: String,
+      enum: ["levante", "postura"],
+      default: "levante",
+      index: true,
+    },
+    fechaAlojamiento: {
+      type: Date,
+      index: true,
+    },
   },
   {
     timestamps: true,

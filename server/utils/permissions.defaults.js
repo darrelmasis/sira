@@ -21,6 +21,8 @@ export const PERMISSION_CATALOG = {
   "roles.manage": "Configurar permisos por rol",
   "sync.manual": "Sincronizar manualmente",
   "settings.view": "Ver ajustes",
+  "transfers.create": "Realizar traslados y capitalizaciones",
+  "inventory.view": "Ver inventario de aves",
 };
 
 export const DEFAULT_PERMISSIONS = {
@@ -36,4 +38,6 @@ export const DEFAULT_PERMISSIONS = {
   "roles.manage": [ROLES.DESARROLLADOR],
   "sync.manual": [ROLES.DESARROLLADOR, ROLES.ADMIN, ROLES.SUPERVISOR],
   "settings.view": [ROLES.DESARROLLADOR, ROLES.ADMIN, ROLES.SUPERVISOR, ROLES.OPERADOR],
+  "transfers.create": [ROLES.DESARROLLADOR, ROLES.ADMIN, ROLES.SUPERVISOR],
+  "inventory.view": [ROLES.DESARROLLADOR, ROLES.ADMIN, ROLES.SUPERVISOR, ROLES.OPERADOR],
 };

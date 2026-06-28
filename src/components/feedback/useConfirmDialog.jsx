@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
-import { Modal, FormDescription } from "quickit-ui";
+import { FormDescription } from "quickit-ui";
+import AppModal from "@/components/ui/AppModal";
 
 const defaultOptions = {
   title: "¿Confirmar acción?",
@@ -35,22 +36,22 @@ export function useConfirmDialog() {
         if (!options) return null;
 
         return (
-          <Modal open onOpenChange={(open) => !open && close(false)}>
-            <Modal.Content>
-              <Modal.Header>
-                <Modal.Title>{options.title}</Modal.Title>
+          <AppModal open onOpenChange={(open) => !open && close(false)} size="sm">
+            <AppModal.Content>
+              <AppModal.Header>
+                <AppModal.Title>{options.title}</AppModal.Title>
                 <FormDescription>{options.description}</FormDescription>
-              </Modal.Header>
-              <Modal.Actions>
-                <Modal.Action type="button" variant="ghost" onClick={() => close(false)}>
+              </AppModal.Header>
+              <AppModal.Actions>
+                <AppModal.Action type="button" variant="ghost" onClick={() => close(false)}>
                   {options.cancelLabel}
-                </Modal.Action>
-                <Modal.Action color={options.confirmColor} onClick={() => close(true)}>
+                </AppModal.Action>
+                <AppModal.Action color={options.confirmColor} onClick={() => close(true)}>
                   {options.confirmLabel}
-                </Modal.Action>
-              </Modal.Actions>
-            </Modal.Content>
-          </Modal>
+                </AppModal.Action>
+              </AppModal.Actions>
+            </AppModal.Content>
+          </AppModal>
         );
       },
     [options, close],

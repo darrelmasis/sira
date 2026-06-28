@@ -4,6 +4,7 @@ import Placement from "../../models/Placement.js";
 import { requireAuth } from "../../middleware/auth.js";
 import { success } from "../../utils/response.js";
 import { getAgeWeeks, getEtapa, dateOnlyToLocalDate } from "../../utils/dates.js";
+import { getLotAgeStartDate } from "../../utils/inventory.js";
 import { validateMortalidadRecord } from "../../validators/mortalidad.js";
 import { validateProduccionRecord } from "../../validators/produccion.js";
 
@@ -14,6 +15,7 @@ function toObjectId(value) {
 }
 
 async function enrichRecord(record) {
+  const lotStart = await getLotAgeStartDate(record.loteId);
   const placement = await Placement.findOne({
     loteId: toObjectId(record.loteId),
     galponId: toObjectId(record.galponId),
@@ -22,7 +24,16 @@ async function enrichRecord(record) {
     .sort({ fechaAlojamiento: -1 })
     .lean();
 
-  const edad = placement ? getAgeWeeks(placement.fechaAlojamiento, record.fecha) : Number(record.edad || 0);
+  if (record.module === "mortalidad" && !placement) {
+    throw new Error("No hay un alojamiento activo para este lote en el galpón seleccionado");
+  }
+
+  const fecha = dateOnlyToLocalDate(record.fecha) || new Date(record.fecha);
+  const edad = lotStart
+    ? getAgeWeeks(lotStart, fecha)
+    : placement
+      ? getAgeWeeks(placement.fechaAlojamiento, fecha)
+      : Number(record.edad || 0);
   const etapa = record.etapa || getEtapa(edad);
 
   const base = {

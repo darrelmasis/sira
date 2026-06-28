@@ -1,4 +1,4 @@
-import { Database, Egg, History, Settings, Skull, User, Users } from "lucide-react";
+import { Database, Egg, History, Settings, Skull, User, Users, ClipboardList, ArrowRightLeft } from "lucide-react";
 import QuickAccessCard from "@/components/layout/QuickAccessCard";
 import { usePermissions } from "@/features/auth/permissions";
 
@@ -6,6 +6,9 @@ export default function DashboardPage() {
   const { can } = usePermissions();
 
   const showAdmin = can("users.manage") || can("roles.manage") || can("catalogs.manage") || can("settings.view");
+
+  const showTraslados = can("transfers.create");
+  const showInventario = can("inventory.view");
 
   return (
     <div className="mx-auto max-w-4xl space-y-8">
@@ -15,7 +18,7 @@ export default function DashboardPage() {
           Registro
           <span className="h-px flex-1 bg-brand-200 dark:bg-brand-900" />
         </h2>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className={`grid gap-3 sm:grid-cols-${showTraslados ? "3" : "2"}`}>
           <QuickAccessCard
             to="/mortalidad"
             icon={Skull}
@@ -28,6 +31,14 @@ export default function DashboardPage() {
             label="Producción"
             description="Ingresa el volumen de huevo recolectado por clasificación."
           />
+          {showTraslados && (
+            <QuickAccessCard
+              to="/traslados"
+              icon={ArrowRightLeft}
+              label="Traslados"
+              description="Registra movimientos de aves y capitalizaciones."
+            />
+          )}
         </div>
       </div>
 
@@ -37,7 +48,7 @@ export default function DashboardPage() {
           Consulta
           <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
         </h2>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className={`grid gap-3 sm:grid-cols-${showInventario ? "3" : "2"}`}>
           <QuickAccessCard
             to="/historial"
             icon={History}
@@ -45,6 +56,15 @@ export default function DashboardPage() {
             description="Revisa registros anteriores, edítalos o expórtalos."
             section="consulta"
           />
+          {showInventario && (
+            <QuickAccessCard
+              to="/inventario"
+              icon={ClipboardList}
+              label="Inventario"
+              description="Visualiza existencias estimadas y edades de lotes en tiempo real."
+              section="consulta"
+            />
+          )}
           <QuickAccessCard
             to="/cuenta"
             icon={User}

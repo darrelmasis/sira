@@ -2,12 +2,19 @@ import mongoose from "mongoose";
 import Transfer from "../../models/Transfer.js";
 import Placement from "../../models/Placement.js";
 import Lot from "../../models/Lot.js";
-import FieldRecord from "../../models/FieldRecord.js";
+import Shed from "../../models/Shed.js";
 import { requireAuth } from "../../middleware/auth.js";
 import { hasPermission } from "../../utils/permissions.js";
 import { success, failure } from "../../utils/response.js";
 import { getFarmScopeFilter, validateFarmAccess } from "../../utils/farmAccess.js";
-import { dateOnlyToLocalDate } from "../../utils/dates.js";
+import { dateOnlyToLocalDate, getAgeWeeks } from "../../utils/dates.js";
+import {
+  CAPITALIZATION_MIN_WEEKS,
+  countActiveLevantePlacements,
+  findActivePlacement,
+  getLotAgeStartDate,
+  getPlacementLiveCount,
+} from "../../utils/inventory.js";
 
 function toObjectId(value) {
   if (!value) return null;
@@ -15,103 +22,12 @@ function toObjectId(value) {
   return new mongoose.Types.ObjectId(String(value));
 }
 
-// Helper to compute net live birds for a specific active placement
-async function getPlacementLiveCount(placement, atDate = new Date()) {
-  const lotId = placement.loteId._id || placement.loteId;
-  const shedId = placement.galponId._id || placement.galponId;
-  const sinceDate = placement.fechaAlojamiento;
-
-  const lotObjId = toObjectId(lotId);
-  const shedObjId = toObjectId(shedId);
-
-  // Diagnostic: log the query details
-  console.log("[getPlacementLiveCount] placement._id:", String(placement._id));
-  console.log("[getPlacementLiveCount] loteId:", lotObjId, "galponId:", shedObjId);
-  console.log("[getPlacementLiveCount] sinceDate:", sinceDate, "atDate:", atDate);
-  console.log("[getPlacementLiveCount] placement.hembras:", placement.hembras, "placement.machos:", placement.machos);
-
-  // 1. Total mortality in this shed for this lot since placement
-  const mortalities = await FieldRecord.find({
-    module: "mortalidad",
-    loteId: lotObjId,
-    galponId: shedObjId,
-    fecha: { $gte: sinceDate, $lte: atDate }
-  }).lean();
-
-  console.log("[getPlacementLiveCount] mortalities found:", mortalities.length);
-  if (mortalities.length > 0) {
-    mortalities.forEach((m, i) => {
-      console.log(`[getPlacementLiveCount]   mortality[${i}]:`, {
-        _id: m._id,
-        fecha: m.fecha,
-        loteId: m.loteId,
-        galponId: m.galponId,
-        data: m.data,
-      });
-    });
-  } else {
-    // Also check if there are ANY mortality records for this lot+galpon (ignoring date)
-    const anyMortalities = await FieldRecord.find({
-      module: "mortalidad",
-      loteId: lotObjId,
-      galponId: shedObjId,
-    }).lean();
-    console.log("[getPlacementLiveCount] mortalities (no date filter):", anyMortalities.length);
-    if (anyMortalities.length > 0) {
-      anyMortalities.forEach((m, i) => {
-        console.log(`[getPlacementLiveCount]   any[${i}]:`, {
-          _id: m._id,
-          fecha: m.fecha,
-          loteId: m.loteId,
-          galponId: m.galponId,
-          data: m.data,
-        });
-      });
-    } else {
-      // Check total mortality records in DB for this module
-      const totalMortalidad = await FieldRecord.countDocuments({ module: "mortalidad" });
-      console.log("[getPlacementLiveCount] total mortalidad records in DB:", totalMortalidad);
-      if (totalMortalidad > 0) {
-        const allMort = await FieldRecord.find({ module: "mortalidad" }).lean();
-        allMort.forEach((m, i) => {
-          console.log(`[getPlacementLiveCount]   all_mortality[${i}]:`, {
-            _id: m._id,
-            clientId: m.clientId,
-            fecha: m.fecha,
-            loteId: m.loteId,
-            galponId: m.galponId,
-            granjaId: m.granjaId,
-            data: m.data,
-          });
-        });
-      }
-    }
+async function maybeUpdateLotEtapa(lot, session = null) {
+  const remainingLevante = await countActiveLevantePlacements(lot._id, session);
+  if (remainingLevante === 0) {
+    lot.etapa = "postura";
+    await lot.save({ session });
   }
-
-  let mortHembras = 0;
-  let mortMachos = 0;
-  for (const m of mortalities) {
-    const qty = Number(m.data?.mortalidad || m.mortalidad || 0);
-    if (m.data?.sexo === "hembra" || m.sexo === "hembra") {
-      mortHembras += qty;
-    } else {
-      mortMachos += qty;
-    }
-  }
-
-  const liveHembras = Math.max(0, placement.hembras - mortHembras);
-  const liveMachos = Math.max(0, placement.machos - mortMachos);
-
-  return {
-    hembras: liveHembras,
-    machos: liveMachos,
-    detalles: {
-      inicialHembras: placement.hembras,
-      inicialMachos: placement.machos,
-      mortalidadHembras: mortHembras,
-      mortalidadMachos: mortMachos,
-    }
-  };
 }
 
 export default async function transfersHandler(req, res) {
@@ -130,7 +46,6 @@ export default async function transfersHandler(req, res) {
         if (scope._empty) {
           return success(res, []);
         }
-        // Find lots that belong to allowed farms
         const allowedLots = await Lot.find({ granjaId: scope }).select("_id").lean();
         const lotIds = allowedLots.map((l) => l._id);
         filter.loteId = { $in: lotIds };
@@ -161,7 +76,7 @@ export default async function transfersHandler(req, res) {
         mortalidadMachos = 0,
         fecha,
         tipo,
-        notas
+        notas,
       } = req.body;
 
       if (!loteId || !origenGalponId || !destinoGalponId || !fecha || !tipo) {
@@ -176,40 +91,82 @@ export default async function transfersHandler(req, res) {
         return failure(res, "Identificadores inválidos", 400);
       }
 
+      if (String(origenGalponId) === String(destinoGalponId)) {
+        return failure(res, "El galpón de origen y destino deben ser diferentes", 400);
+      }
+
+      if (!["traslado", "capitalizacion"].includes(tipo)) {
+        return failure(res, "Tipo de movimiento inválido", 400);
+      }
+
       const parsedFecha = dateOnlyToLocalDate(fecha) || new Date(fecha);
       if (Number.isNaN(parsedFecha.getTime())) {
         return failure(res, "Fecha inválida", 400);
       }
 
-      // Check Lot exists and get farm
       const lot = await Lot.findById(loteId);
       if (!lot) {
         return failure(res, "Lote no encontrado", 404);
       }
 
-      // Validate user has access to this lot's farm
       const farmError = validateFarmAccess(user, lot.granjaId);
       if (farmError) return failure(res, farmError, 403);
 
-      // Verify origin placement is active
-      const placement = await Placement.findOne({
-        loteId: toObjectId(loteId),
-        galponId: toObjectId(origenGalponId),
-        estado: { $ne: "cerrado" }
-      });
+      const [origenShed, destinoShed] = await Promise.all([
+        Shed.findById(origenGalponId).lean(),
+        Shed.findById(destinoGalponId).lean(),
+      ]);
 
+      if (!origenShed) {
+        return failure(res, "Galpón de origen no encontrado", 404);
+      }
+      if (!destinoShed) {
+        return failure(res, "Galpón de destino no encontrado", 404);
+      }
+      if (String(origenShed.granjaId) !== String(lot.granjaId)) {
+        return failure(res, "El galpón de origen debe pertenecer a la misma granja que el lote", 400);
+      }
+      if (String(destinoShed.granjaId) !== String(lot.granjaId)) {
+        return failure(res, "El galpón de destino debe pertenecer a la misma granja que el lote", 400);
+      }
+
+      const placement = await findActivePlacement(loteId, origenGalponId);
       if (!placement) {
         return failure(res, "No hay un alojamiento activo para este lote en el galpón de origen", 404);
       }
 
-      // Compute current live count at transfer date
-      const live = await getPlacementLiveCount(placement, parsedFecha);
+      if (tipo === "capitalizacion") {
+        if (placement.tipo !== "levante") {
+          return failure(res, "Solo se puede capitalizar un alojamiento en fase de levante", 400);
+        }
+
+        const lotStartDate = await getLotAgeStartDate(lot._id);
+        const edadSemanas = lotStartDate
+          ? getAgeWeeks(lotStartDate, parsedFecha)
+          : getAgeWeeks(placement.fechaAlojamiento, parsedFecha);
+
+        if (edadSemanas < CAPITALIZATION_MIN_WEEKS) {
+          return failure(
+            res,
+            `La capitalización requiere al menos ${CAPITALIZATION_MIN_WEEKS} semanas de edad (actual: ${edadSemanas})`,
+            400,
+          );
+        }
+      }
+
+      const live = await getPlacementLiveCount(placement, parsedFecha, lot.sexo);
 
       const qtyHembras = Number(hembrasTrasladadas);
       const qtyMachos = Number(machosTrasladadas);
       const mortH = Number(mortalidadHembras);
       const mortM = Number(mortalidadMachos);
 
+      if (!Number.isFinite(qtyHembras) || qtyHembras < 0 || !Number.isFinite(qtyMachos) || qtyMachos < 0) {
+        return failure(res, "Las cantidades trasladadas deben ser números válidos", 400);
+      }
+      if (qtyHembras <= 0 && qtyMachos <= 0) {
+        return failure(res, "Debes trasladar al menos una hembra o un macho", 400);
+      }
       if (qtyHembras > live.hembras) {
         return failure(res, `No puedes trasladar más hembras de las disponibles (${live.hembras} vivas)`, 400);
       }
@@ -223,65 +180,103 @@ export default async function transfersHandler(req, res) {
         return failure(res, "La mortalidad de tránsito de machos no puede ser mayor que las trasladadas", 400);
       }
 
-      // Save Transfer
-      const transfer = new Transfer({
-        loteId: toObjectId(loteId),
-        origenGalponId: toObjectId(origenGalponId),
-        destinoGalponId: toObjectId(destinoGalponId),
-        hembrasTrasladadas: qtyHembras,
-        machosTrasladadas: qtyMachos,
-        mortalidadHembras: mortH,
-        mortalidadMachos: mortM,
-        fecha: parsedFecha,
-        tipo,
-        notas,
-        createdBy: user._id
-      });
-      await transfer.save();
-
-      // Update the origin placement
-      placement.hembras -= qtyHembras;
-      placement.machos -= qtyMachos;
-      if (placement.hembras <= 0 && placement.machos <= 0) {
-        placement.estado = "cerrado";
-      }
-      await placement.save();
-
-      // Find or create destination placement
       const netHembras = qtyHembras - mortH;
       const netMachos = qtyMachos - mortM;
-
-      let destPlacement = await Placement.findOne({
-        loteId: toObjectId(loteId),
-        galponId: toObjectId(destinoGalponId),
-        estado: { $ne: "cerrado" }
-      });
-
-      if (destPlacement) {
-        destPlacement.hembras += netHembras;
-        destPlacement.machos += netMachos;
-        if (tipo === "capitalizacion") {
-          destPlacement.tipo = "postura";
-        }
-        await destPlacement.save();
-      } else {
-        const destPlacementType = tipo === "capitalizacion" ? "postura" : placement.tipo;
-        destPlacement = new Placement({
-          loteId: toObjectId(loteId),
-          galponId: toObjectId(destinoGalponId),
-          hembras: netHembras,
-          machos: netMachos,
-          fechaAlojamiento: parsedFecha,
-          tipo: destPlacementType,
-          estado: "activo"
-        });
-        await destPlacement.save();
+      if (netHembras <= 0 && netMachos <= 0) {
+        return failure(res, "El traslado debe dejar aves vivas en el destino", 400);
       }
 
-      // If it is capitalization, mark the lot stage as posture
-      if (tipo === "capitalizacion") {
-        lot.etapa = "postura";
-        await lot.save();
+      const session = await mongoose.startSession();
+      let transfer;
+
+      try {
+        await session.withTransaction(async () => {
+          transfer = await Transfer.create(
+            [
+              {
+                loteId: toObjectId(loteId),
+                origenGalponId: toObjectId(origenGalponId),
+                destinoGalponId: toObjectId(destinoGalponId),
+                hembrasTrasladadas: qtyHembras,
+                machosTrasladadas: qtyMachos,
+                mortalidadHembras: mortH,
+                mortalidadMachos: mortM,
+                fecha: parsedFecha,
+                tipo,
+                notas,
+                createdBy: user._id,
+              },
+            ],
+            { session },
+          ).then((rows) => rows[0]);
+
+          placement.hembras -= qtyHembras;
+          placement.machos -= qtyMachos;
+
+          const remainingLive = await getPlacementLiveCount(placement, parsedFecha, lot.sexo);
+          if (
+            (placement.hembras <= 0 && placement.machos <= 0) ||
+            (remainingLive.hembras <= 0 && remainingLive.machos <= 0)
+          ) {
+            placement.estado = "cerrado";
+          }
+          await placement.save({ session });
+
+          const destPlacement = await findActivePlacement(loteId, destinoGalponId, session);
+
+          if (destPlacement) {
+            destPlacement.hembras += netHembras;
+            destPlacement.machos += netMachos;
+            if (tipo === "capitalizacion") {
+              destPlacement.tipo = "postura";
+            }
+            await destPlacement.save({ session });
+          } else {
+            const destPlacementType = tipo === "capitalizacion" ? "postura" : placement.tipo;
+            await Placement.create(
+              [
+                {
+                  loteId: toObjectId(loteId),
+                  galponId: toObjectId(destinoGalponId),
+                  hembras: netHembras,
+                  machos: netMachos,
+                  fechaAlojamiento: parsedFecha,
+                  tipo: destPlacementType,
+                  estado: "activo",
+                },
+              ],
+              { session },
+            );
+          }
+
+          if (tipo === "capitalizacion") {
+            await maybeUpdateLotEtapa(lot, session);
+          }
+        });
+      } catch (txError) {
+        if (txError.message?.includes("Transaction numbers are only allowed")) {
+          transfer = await createTransferWithoutSession({
+            user,
+            lot,
+            placement,
+            loteId,
+            origenGalponId,
+            destinoGalponId,
+            qtyHembras,
+            qtyMachos,
+            mortH,
+            mortM,
+            netHembras,
+            netMachos,
+            parsedFecha,
+            tipo,
+            notas,
+          });
+        } else {
+          throw txError;
+        }
+      } finally {
+        session.endSession();
       }
 
       return success(res, transfer);
@@ -293,4 +288,76 @@ export default async function transfersHandler(req, res) {
   }
 }
 
-export { getPlacementLiveCount };
+async function createTransferWithoutSession({
+  user,
+  lot,
+  placement,
+  loteId,
+  origenGalponId,
+  destinoGalponId,
+  qtyHembras,
+  qtyMachos,
+  mortH,
+  mortM,
+  netHembras,
+  netMachos,
+  parsedFecha,
+  tipo,
+  notas,
+}) {
+  const transfer = await Transfer.create({
+    loteId: toObjectId(loteId),
+    origenGalponId: toObjectId(origenGalponId),
+    destinoGalponId: toObjectId(destinoGalponId),
+    hembrasTrasladadas: qtyHembras,
+    machosTrasladadas: qtyMachos,
+    mortalidadHembras: mortH,
+    mortalidadMachos: mortM,
+    fecha: parsedFecha,
+    tipo,
+    notas,
+    createdBy: user._id,
+  });
+
+  placement.hembras -= qtyHembras;
+  placement.machos -= qtyMachos;
+
+  const remainingLive = await getPlacementLiveCount(placement, parsedFecha, lot.sexo);
+  if (
+    (placement.hembras <= 0 && placement.machos <= 0) ||
+    (remainingLive.hembras <= 0 && remainingLive.machos <= 0)
+  ) {
+    placement.estado = "cerrado";
+  }
+  await placement.save();
+
+  let destPlacement = await findActivePlacement(loteId, destinoGalponId);
+
+  if (destPlacement) {
+    destPlacement.hembras += netHembras;
+    destPlacement.machos += netMachos;
+    if (tipo === "capitalizacion") {
+      destPlacement.tipo = "postura";
+    }
+    await destPlacement.save();
+  } else {
+    const destPlacementType = tipo === "capitalizacion" ? "postura" : placement.tipo;
+    await Placement.create({
+      loteId: toObjectId(loteId),
+      galponId: toObjectId(destinoGalponId),
+      hembras: netHembras,
+      machos: netMachos,
+      fechaAlojamiento: parsedFecha,
+      tipo: destPlacementType,
+      estado: "activo",
+    });
+  }
+
+  if (tipo === "capitalizacion") {
+    await maybeUpdateLotEtapa(lot);
+  }
+
+  return transfer;
+}
+
+export { getPlacementLiveCount } from "../../utils/inventory.js";

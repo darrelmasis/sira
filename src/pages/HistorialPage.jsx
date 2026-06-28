@@ -6,7 +6,6 @@ import {
   FormControl,
   Input,
   Label,
-  Modal,
   Select,
   Textarea,
   DatePicker,
@@ -19,6 +18,7 @@ import FilterDrawer from "@/components/filters/FilterDrawer";
 import ListEmptyState from "@/components/feedback/ListEmptyState";
 import NumberStepper from "@/components/ui/NumberStepper";
 import RowActionsDropdown from "@/components/ui/RowActionsDropdown";
+import AppModal from "@/components/ui/AppModal";
 import UserAvatar from "@/components/UserAvatar";
 import { useFarmAccess } from "@/features/auth/farmAccess";
 import { usePermissions } from "@/features/auth/permissions";
@@ -534,14 +534,15 @@ export default function HistorialPage() {
 
       <ConfirmDialogHost />
 
-      <Modal open={!!viewRecord} onOpenChange={(open) => { if (!open) setViewRecord(null); }}>
-        <Modal.Content>
-          <Modal.Header>
-            <Modal.Title>Detalle del registro</Modal.Title>
-            <FormDescription>Información completa del registro.</FormDescription>
-          </Modal.Header>
+      <AppModal open={!!viewRecord} onOpenChange={(open) => { if (!open) setViewRecord(null); }} size="lg">
+        <AppModal.Content>
+          <AppModal.Layout>
+            <AppModal.Header>
+              <AppModal.Title>Detalle del registro</AppModal.Title>
+              <FormDescription>Información completa del registro.</FormDescription>
+            </AppModal.Header>
 
-          <Modal.Body className="space-y-4">
+            <AppModal.Body className="space-y-4">
             {viewRecord && (() => {
               const p = viewRecord.payload;
               const isProduccion = viewRecord.module === "produccion";
@@ -654,25 +655,26 @@ export default function HistorialPage() {
                 </div>
               );
             })()}
-          </Modal.Body>
+          </AppModal.Body>
 
-          <Modal.Actions>
-            <Modal.Action type="button" variant="ghost" onClick={() => setViewRecord(null)}>
+          <AppModal.Actions>
+            <AppModal.Action type="button" variant="ghost" onClick={() => setViewRecord(null)}>
               Cerrar
-            </Modal.Action>
-          </Modal.Actions>
-        </Modal.Content>
-      </Modal>
+            </AppModal.Action>
+          </AppModal.Actions>
+          </AppModal.Layout>
+        </AppModal.Content>
+      </AppModal>
 
-      <Modal open={!!editRecord} onOpenChange={(open) => { if (!open) { setEditRecord(null); setEditForm(null); } }}>
-        <Modal.Content>
-          <form onSubmit={handleEditSubmit}>
-            <Modal.Header>
-              <Modal.Title>Editar registro</Modal.Title>
+      <AppModal open={!!editRecord} onOpenChange={(open) => { if (!open) { setEditRecord(null); setEditForm(null); } }} size="xl">
+        <AppModal.Content>
+          <AppModal.Form onSubmit={handleEditSubmit}>
+            <AppModal.Header>
+              <AppModal.Title>Editar registro</AppModal.Title>
               <FormDescription>Corrige los datos del registro.</FormDescription>
-            </Modal.Header>
+            </AppModal.Header>
 
-            <Modal.Body className="space-y-4">
+            <AppModal.Body className="space-y-4">
               {editError && <Alert color="danger" title={editError} />}
               <div tabIndex={0} className="sr-only" />
 
@@ -822,20 +824,47 @@ export default function HistorialPage() {
               </div>
 
               {editRecord?.module !== "produccion" && (
-                <FormControl controlId="edit-causaMuerte">
-                  <Label>Causa de muerte</Label>
-                  <Textarea
-                    id="edit-causaMuerte"
-                    minRows={2}
-                    placeholder="Ej. estrés calórico, problemas respiratorios..."
-                    value={editForm?.causaMuerte || ""}
-                    onChange={(e) => updateEditField("causaMuerte", e.target.value)}
-                  />
-                </FormControl>
-              )}
-            </Modal.Body>
+                <>
+                  <FormControl controlId="edit-causaMuerte">
+                    <Label>Causa de muerte</Label>
+                    <Select
+                      id="edit-causaMuerte"
+                      value={["Mortalidad natural", "Necropsia", "Ovoscopia", "Descarte", "Venta"].includes(editForm?.causaMuerte || "") ? editForm.causaMuerte : (editForm?.causaMuerte ? "Otro" : "")}
+                      placeholder="Seleccionar causa..."
+                      onValueChange={(val) => {
+                        if (val === "Otro") {
+                          updateEditField("causaMuerte", "Otro: ");
+                        } else {
+                          updateEditField("causaMuerte", val);
+                        }
+                      }}
+                    >
+                      <option value="">Seleccionar causa...</option>
+                      <option value="Mortalidad natural">Mortalidad natural</option>
+                      <option value="Necropsia">Necropsia</option>
+                      <option value="Ovoscopia">Ovoscopia</option>
+                      <option value="Descarte">Descarte</option>
+                      <option value="Venta">Venta</option>
+                      <option value="Otro">Otro (especificar)</option>
+                    </Select>
+                  </FormControl>
 
-            <Modal.Actions>
+                  {editForm?.causaMuerte && (!["Mortalidad natural", "Necropsia", "Ovoscopia", "Descarte", "Venta", ""].includes(editForm.causaMuerte) || editForm.causaMuerte.startsWith("Otro: ")) && (
+                    <FormControl controlId="edit-causaMuerteEspecificar">
+                      <Label>Especificar causa</Label>
+                      <Input
+                        id="edit-causaMuerteEspecificar"
+                        placeholder="Escribe la causa detallada aquí..."
+                        value={editForm.causaMuerte.startsWith("Otro: ") ? editForm.causaMuerte.replace("Otro: ", "") : editForm.causaMuerte}
+                        onChange={(e) => updateEditField("causaMuerte", `Otro: ${e.target.value}`)}
+                      />
+                    </FormControl>
+                  )}
+                </>
+              )}
+            </AppModal.Body>
+
+            <AppModal.Actions>
               <Button type="button" variant="ghost" onClick={() => { setEditRecord(null); setEditForm(null); }}>
                 Cancelar
               </Button>
@@ -843,10 +872,10 @@ export default function HistorialPage() {
                 <Save aria-hidden="true" className="mr-2 size-4" />
                 Guardar cambios
               </Button>
-            </Modal.Actions>
-          </form>
-        </Modal.Content>
-      </Modal>
+            </AppModal.Actions>
+          </AppModal.Form>
+        </AppModal.Content>
+      </AppModal>
     </div>
   );
 }

@@ -1,9 +1,11 @@
 import { NavLink } from "react-router-dom";
 import { cn } from "quickit-ui";
-import { Database, History, LayoutGrid, Settings, Skull, Users } from "lucide-react";
+import { Database, History, LayoutGrid, Settings, Skull, Users, ClipboardList, ArrowRightLeft } from "lucide-react";
 
 export const mainNav = [
   { to: "/", label: "Inicio", icon: LayoutGrid, end: true },
+  { to: "/inventario", label: "Inventario", icon: ClipboardList, permission: "inventory.view" },
+  { to: "/traslados", label: "Traslados", icon: ArrowRightLeft, permission: "transfers.create" },
   { to: "/mortalidad", label: "Mortalidad", icon: Skull },
   { to: "/historial", label: "Historial", icon: History },
 ];
@@ -16,6 +18,8 @@ export const adminNav = [
 
 export const pageMeta = {
   "/": { title: "Inicio", subtitle: "Accede rápidamente a las funcionalidades más importantes" },
+  "/inventario": { title: "Inventario", subtitle: "Existencias estimadas de aves en tiempo real" },
+  "/traslados": { title: "Traslados", subtitle: "Movimiento y capitalización de aves" },
   "/mortalidad": { title: "Mortalidad" },
   "/produccion": { title: "Producción" },
   "/historial": { title: "Historial" },

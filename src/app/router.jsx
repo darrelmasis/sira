@@ -10,6 +10,8 @@ import AccountPage from "@/pages/AccountPage";
 import AppSettingsPage from "@/pages/AppSettingsPage";
 import CatalogsPage from "@/pages/CatalogsPage";
 import UsersPage from "@/pages/UsersPage";
+import InventarioPage from "@/pages/InventarioPage";
+import TrasladosPage from "@/pages/TrasladosPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import ErrorPage from "@/pages/ErrorPage";
 import AppShell from "@/components/layout/AppShell";
@@ -45,6 +47,22 @@ export const router = createBrowserRouter([
       { path: "produccion", element: <ProduccionPage /> },
       { path: "historial", element: <HistorialPage /> },
       { path: "cuenta", element: <AccountPage /> },
+      {
+        path: "inventario",
+        element: (
+          <PermissionRoute permission="inventory.view">
+            <InventarioPage />
+          </PermissionRoute>
+        ),
+      },
+      {
+        path: "traslados",
+        element: (
+          <PermissionRoute permission="transfers.create">
+            <TrasladosPage />
+          </PermissionRoute>
+        ),
+      },
       {
         path: "sistema",
         element: (
