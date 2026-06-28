@@ -14,7 +14,7 @@ import {
   FormDescription,
   toast,
 } from "quickit-ui";
-import { Calendar, ClipboardList, Eye, Save } from "lucide-react";
+import { ClipboardList, Eye, Save } from "lucide-react";
 import NumberStepper from "@/components/NumberStepper";
 import UserAvatar from "@/components/UserAvatar";
 import TableSkeleton from "@/components/feedback/TableSkeleton";
@@ -56,7 +56,9 @@ export default function HistorialPage() {
   const canDelete = can("records.delete");
   const hasActions = canView || canEdit || canDelete;
 
-  const [dateFilter, setDateFilter] = useState({ preset: "all", range: { from: undefined, to: undefined } });
+  const [dateRange, setDateRange] = useState({ from: undefined, to: undefined });
+  const [datePreset, setDatePreset] = useState("all");
+  const [farmFilter, setFarmFilter] = useState("");
   const [viewRecord, setViewRecord] = useState(null);
   const [editRecord, setEditRecord] = useState(null);
   const [editForm, setEditForm] = useState(null);
@@ -148,19 +150,15 @@ export default function HistorialPage() {
   }, [filterCatalogs, filterRecords]);
 
   const filteredRecords = useMemo(() => {
-    const p = dateFilter.preset;
-    if (p === "all") return records;
     return records.filter((r) => {
-      const d = extractDateOnly(r.payload.fecha);
-      if (!d) return false;
-      if (p === "today") return d === todayStr();
-      if (p === "yesterday") return d === yesterdayStr();
-      if (p === "custom" && dateFilter.range.from && dateFilter.range.to) {
-        return d >= extractDateOnly(dateFilter.range.from) && d <= extractDateOnly(dateFilter.range.to);
+      if (dateRange.from && dateRange.to) {
+        const d = extractDateOnly(r.payload.fecha);
+        if (!d || d < extractDateOnly(dateRange.from) || d > extractDateOnly(dateRange.to)) return false;
       }
+      if (farmFilter && normalizeId(r.payload.granjaId) !== normalizeId(farmFilter)) return false;
       return true;
     });
-  }, [records, dateFilter]);
+  }, [records, dateRange, farmFilter]);
 
   const catalogMaps = useMemo(
     () => ({
@@ -423,8 +421,17 @@ export default function HistorialPage() {
     );
   }
 
-  function setPreset(preset) {
-    setDateFilter({ preset, start: null, end: null });
+  function setRange(preset) {
+    setDatePreset(preset);
+    if (preset === "today") {
+      const d = new Date();
+      setDateRange({ from: d, to: d });
+    } else if (preset === "yesterday") {
+      const d = new Date(Date.now() - 86400000);
+      setDateRange({ from: d, to: d });
+    } else {
+      setDateRange({ from: undefined, to: undefined });
+    }
   }
 
   return (
@@ -433,50 +440,52 @@ export default function HistorialPage() {
         <Button
           type="button"
           size="sm"
-          variant={dateFilter.preset === "all" ? "solid" : "outline"}
-          color={dateFilter.preset === "all" ? "brand" : "neutral"}
-          onClick={() => setPreset("all")}
+          variant={datePreset === "all" ? "solid" : "outline"}
+          color={datePreset === "all" ? "brand" : "neutral"}
+          onClick={() => setRange("all")}
         >
           Todas
         </Button>
         <Button
           type="button"
           size="sm"
-          variant={dateFilter.preset === "today" ? "solid" : "outline"}
-          color={dateFilter.preset === "today" ? "brand" : "neutral"}
-          onClick={() => setPreset("today")}
+          variant={datePreset === "today" ? "solid" : "outline"}
+          color={datePreset === "today" ? "brand" : "neutral"}
+          onClick={() => setRange("today")}
         >
           Hoy
         </Button>
         <Button
           type="button"
           size="sm"
-          variant={dateFilter.preset === "yesterday" ? "solid" : "outline"}
-          color={dateFilter.preset === "yesterday" ? "brand" : "neutral"}
-          onClick={() => setPreset("yesterday")}
+          variant={datePreset === "yesterday" ? "solid" : "outline"}
+          color={datePreset === "yesterday" ? "brand" : "neutral"}
+          onClick={() => setRange("yesterday")}
         >
           Ayer
         </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant={dateFilter.preset === "custom" ? "solid" : "outline"}
-          color={dateFilter.preset === "custom" ? "brand" : "neutral"}
-          onClick={() => setDateFilter({ preset: "custom", range: { from: undefined, to: undefined } })}
-        >
-          <Calendar aria-hidden="true" className="size-3.5" />
-          Personalizado
-        </Button>
 
-        {dateFilter.preset === "custom" && (
-          <DatePicker
-            selectionMode="between"
-            value={dateFilter.range}
-            onChange={(range) => setDateFilter((prev) => ({ ...prev, range }))}
-            placeholder="Seleccionar rango"
-            dateStyle="short"
-          />
-        )}
+        <DatePicker
+          selectionMode="between"
+          value={dateRange}
+          onChange={(range) => {
+            setDateRange(range);
+            setDatePreset("range");
+          }}
+          placeholder="Seleccionar rango"
+          dateStyle="short"
+        />
+
+        <Select
+          value={farmFilter}
+          placeholder="Todas las granjas"
+          onValueChange={(value) => setFarmFilter(value)}
+        >
+          <option value="">Todas las granjas</option>
+          {catalogs.farms.map((farm) => (
+            <option key={farm.id} value={farm.id}>{farm.nombre}</option>
+          ))}
+        </Select>
 
         <span className="ml-auto text-sm text-zinc-500">
           {filteredRecords.length} de {records.length} registro{records.length !== 1 ? "s" : ""}
