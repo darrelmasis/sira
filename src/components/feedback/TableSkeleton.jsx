@@ -12,7 +12,7 @@ export default function TableSkeleton({
     : `repeat(${columns}, minmax(0, 1fr))`;
 
   return (
-    <div className={showHeader ? "overflow-hidden rounded-xl border border-zinc-200/80 dark:border-zinc-800" : "space-y-4"}>
+    <div className={showHeader ? "overflow-hidden rounded-2xl border border-zinc-200/80 dark:border-zinc-800" : "space-y-4"}>
       {showToolbar && (
         <div className="flex justify-end">
           <Skeleton variant="rect" className="h-9 w-36 rounded-md" />
@@ -26,7 +26,7 @@ export default function TableSkeleton({
         </div>
       )}
 
-      <div className={showHeader ? "" : "overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800"}>
+      <div className={showHeader ? "" : "overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800"}>
         <div
           className="grid gap-4 border-b border-zinc-200 bg-zinc-50/80 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/50"
           style={{ gridTemplateColumns: gridColumns }}

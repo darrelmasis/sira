@@ -100,6 +100,7 @@ export function useCatalogCrud(config) {
 
   return {
     data,
+    meta,
     loading,
     modalOpen,
     setModalOpen,
