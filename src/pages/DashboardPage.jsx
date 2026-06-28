@@ -6,19 +6,19 @@ export default function DashboardPage() {
   const { can } = usePermissions();
 
   return (
-    <div className="grid gap-3 grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-      <QuickAccessCard to="/mortalidad" icon={Skull} label="Mortalidad" description="Registrar aves muertas" />
-      <QuickAccessCard to="/produccion" icon={Egg} label="Producción" description="Registrar producción de huevo" accent="success" />
-      <QuickAccessCard to="/historial" icon={History} label="Historial" description="Ver registros capturados" accent="info" />
-      <QuickAccessCard to="/cuenta" icon={User} label="Mi cuenta" description="Perfil y contraseña" />
+    <div className="grid gap-2 grid-cols-3 lg:grid-cols-6 xl:grid-cols-6">
+      <QuickAccessCard to="/mortalidad" icon={Skull} label="Mortalidad" />
+      <QuickAccessCard to="/produccion" icon={Egg} label="Producción" accent="success" />
+      <QuickAccessCard to="/historial" icon={History} label="Historial" accent="info" />
+      <QuickAccessCard to="/cuenta" icon={User} label="Mi cuenta" />
       {(can("users.manage") || can("roles.manage")) && (
-        <QuickAccessCard to="/usuarios" icon={Users} label="Usuarios" description="Cuentas y permisos por rol" accent="warning" />
+        <QuickAccessCard to="/usuarios" icon={Users} label="Usuarios" accent="warning" />
       )}
       {can("catalogs.manage") && (
-        <QuickAccessCard to="/catalogos" icon={Database} label="Catálogos" description="Granjas, galpones y lotes" accent="warning" />
+        <QuickAccessCard to="/catalogos" icon={Database} label="Catálogos" accent="warning" />
       )}
       {can("settings.view") && (
-        <QuickAccessCard to="/sistema" icon={Settings} label="Sistema" description="Tema, sync y catálogos" />
+        <QuickAccessCard to="/sistema" icon={Settings} label="Sistema" />
       )}
     </div>
   );
