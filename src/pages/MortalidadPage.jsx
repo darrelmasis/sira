@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Alert, Button, FormControl, Input, Label, Select, Textarea, toast, DatePicker } from "quickit-ui";
 import { RefreshCcw, Save } from "lucide-react";
@@ -56,10 +56,9 @@ export default function MortalidadPage() {
   const [values, setValues] = useState(initialForm);
   const [catalogs, setCatalogs] = useState({ farms: [], sheds: [], lots: [] });
   const [loadingCatalogs, setLoadingCatalogs] = useState(true);
-  const [downloadingCatalogs, setDownloadingCatalogs] = useState(false);
+  const [syncingCatalogs, setSyncingCatalogs] = useState(false);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  const serverAttempted = useRef(false);
 
   const filteredSheds = useMemo(
     () => catalogs.sheds.filter((shed) => !values.granjaId || normalizeId(shed.granjaId) === normalizeId(values.granjaId)),
@@ -83,17 +82,17 @@ export default function MortalidadPage() {
     return scoped;
   }, [filterCatalogs]);
 
-  const fetchFromServer = useCallback(async () => {
-    if (!accessToken || serverAttempted.current) return;
-    serverAttempted.current = true;
-    setDownloadingCatalogs(true);
+  const tryDownloadCatalogs = useCallback(async () => {
+    if (!accessToken) return;
+    setSyncingCatalogs(true);
+    setError("");
     try {
       await refreshCatalogs(accessToken);
       await loadCatalogs();
     } catch (err) {
-      console.error("Error al descargar catálogos:", err);
+      setError(err.message || "Error al descargar catálogos");
     } finally {
-      setDownloadingCatalogs(false);
+      setSyncingCatalogs(false);
     }
   }, [accessToken, loadCatalogs]);
 
@@ -102,8 +101,11 @@ export default function MortalidadPage() {
 
     (async () => {
       const scoped = await loadCatalogs();
-      if (active && hasAssignedFarms && (scoped.farms.length === 0 || scoped.sheds.length === 0 || scoped.lots.length === 0)) {
-        fetchFromServer();
+      if (!active) return;
+
+      const empty = scoped.farms.length === 0 || scoped.sheds.length === 0 || scoped.lots.length === 0;
+      if (empty && hasAssignedFarms && accessToken) {
+        await tryDownloadCatalogs();
       }
       if (active) setLoadingCatalogs(false);
     })();
@@ -118,7 +120,7 @@ export default function MortalidadPage() {
       active = false;
       unsub();
     };
-  }, [loadCatalogs, fetchFromServer, hasAssignedFarms]);
+  }, [loadCatalogs, tryDownloadCatalogs, hasAssignedFarms, accessToken]);
 
   function updateField(field, value) {
     setValues((current) => {
@@ -214,7 +216,7 @@ export default function MortalidadPage() {
   }
 
   if (catalogs.farms.length === 0 || catalogs.sheds.length === 0 || catalogs.lots.length === 0) {
-    if (downloadingCatalogs) {
+    if (syncingCatalogs) {
       return (
         <div className="mx-auto max-w-3xl space-y-4">
           <FormSectionSkeleton fields={7} fullWidthLast />
@@ -226,26 +228,25 @@ export default function MortalidadPage() {
     }
 
     return (
-      <Alert
-        color="warning"
-        title="Catálogos incompletos"
-        description={
-          <div className="space-y-3">
-            <p>Necesitas granjas, galpones y lotes cargados. Si es tu primer inicio, presiona "Sincronizar ahora" para descargarlos del servidor.</p>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              color="neutral"
-              loading={isSyncing}
-              onClick={syncNow}
-            >
-              <RefreshCcw aria-hidden="true" className="size-3.5" />
-              Sincronizar ahora
-            </Button>
-          </div>
-        }
-      />
+      <div className="mx-auto max-w-3xl space-y-4">
+        <Alert
+          color="warning"
+          title="Catálogos incompletos"
+          description={"Necesitas granjas, galpones y lotes cargados en el servidor."}
+        />
+        {error && <Alert color="danger" title={error} />}
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          color="neutral"
+          loading={isSyncing || syncingCatalogs}
+          onClick={syncNow}
+        >
+          <RefreshCcw aria-hidden="true" className="size-3.5" />
+          Descargar catálogos
+        </Button>
+      </div>
     );
   }
 
