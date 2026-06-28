@@ -15,11 +15,11 @@ import {
   toast,
 } from "quickit-ui";
 import { ClipboardList, Cloud, CloudOff, Egg, Eye, RefreshCw, Save, Skull } from "lucide-react";
-import NumberStepper from "@/components/NumberStepper";
+import NumberStepper from "@/components/ui/NumberStepper";
 import UserAvatar from "@/components/UserAvatar";
 import TableSkeleton from "@/components/feedback/TableSkeleton";
 import ListEmptyState from "@/components/feedback/ListEmptyState";
-import RowActionsDropdown from "@/components/RowActionsDropdown";
+import RowActionsDropdown from "@/components/ui/RowActionsDropdown";
 import { useFarmAccess } from "@/features/auth/farmAccess";
 import { usePermissions } from "@/features/auth/permissions";
 import { getLocalCatalogs } from "@/features/catalogs/catalogStore";

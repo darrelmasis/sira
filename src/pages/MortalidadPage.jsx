@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Alert, Button, FormControl, Input, Label, Select, Textarea, toast, DatePicker } from "quickit-ui";
 import { Save } from "lucide-react";
-import NumberStepper from "@/components/NumberStepper";
+import NumberStepper from "@/components/ui/NumberStepper";
 import FormSectionSkeleton from "@/components/feedback/FormSectionSkeleton";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useFarmAccess } from "@/features/auth/farmAccess";

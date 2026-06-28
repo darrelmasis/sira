@@ -9,7 +9,7 @@ import {
   labelForId,
 } from "@/lib/catalog-utils";
 import { formatDateInput, formatDateShort, parseDateInput, todayInput } from "@/lib/datetime";
-import RowActionsDropdown from "@/components/RowActionsDropdown";
+import RowActionsDropdown from "@/components/ui/RowActionsDropdown";
 
 const farmInitialForm = { nombre: "", tipo: "engorde" };
 

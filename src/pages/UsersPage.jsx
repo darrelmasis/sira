@@ -24,7 +24,7 @@ import UserAvatar from "@/components/UserAvatar";
 import RolePermissionsPanel from "@/features/users/RolePermissionsPanel";
 import TableSkeleton from "@/components/feedback/TableSkeleton";
 import ListEmptyState from "@/components/feedback/ListEmptyState";
-import RowActionsDropdown from "@/components/RowActionsDropdown";
+import RowActionsDropdown from "@/components/ui/RowActionsDropdown";
 import { formatDateTime } from "@/lib/datetime";
 
 const roleOptions = Object.values(ROLES);

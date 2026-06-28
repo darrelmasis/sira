@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Alert, Button, FormControl, Input, Label, Select, toast, DatePicker } from "quickit-ui";
 import { Save, Egg } from "lucide-react";
 import FormSectionSkeleton from "@/components/feedback/FormSectionSkeleton";
-import NumberStepper from "@/components/NumberStepper";
+import NumberStepper from "@/components/ui/NumberStepper";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useFarmAccess } from "@/features/auth/farmAccess";
 import { usePermissions } from "@/features/auth/permissions";
