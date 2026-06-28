@@ -71,6 +71,20 @@ async function getPlacementLiveCount(placement, atDate = new Date()) {
       // Check total mortality records in DB for this module
       const totalMortalidad = await FieldRecord.countDocuments({ module: "mortalidad" });
       console.log("[getPlacementLiveCount] total mortalidad records in DB:", totalMortalidad);
+      if (totalMortalidad > 0) {
+        const allMort = await FieldRecord.find({ module: "mortalidad" }).lean();
+        allMort.forEach((m, i) => {
+          console.log(`[getPlacementLiveCount]   all_mortality[${i}]:`, {
+            _id: m._id,
+            clientId: m.clientId,
+            fecha: m.fecha,
+            loteId: m.loteId,
+            galponId: m.galponId,
+            granjaId: m.granjaId,
+            data: m.data,
+          });
+        });
+      }
     }
   }
 
