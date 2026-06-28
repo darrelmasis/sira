@@ -56,7 +56,7 @@ export default function HistorialPage() {
   const canDelete = can("records.delete");
   const hasActions = canView || canEdit || canDelete;
 
-  const [dateFilter, setDateFilter] = useState({ preset: "all", start: null, end: null });
+  const [dateFilter, setDateFilter] = useState({ preset: "all", range: { from: undefined, to: undefined } });
   const [viewRecord, setViewRecord] = useState(null);
   const [editRecord, setEditRecord] = useState(null);
   const [editForm, setEditForm] = useState(null);
@@ -89,7 +89,7 @@ export default function HistorialPage() {
             id: String(row.updatedBy || row.createdBy || ""),
             nombre: auditName,
             username: auditName,
-            avatarId: null,
+            avatarId: row.audit?.updatedByAvatarId || null,
           },
         },
       },
@@ -155,8 +155,8 @@ export default function HistorialPage() {
       if (!d) return false;
       if (p === "today") return d === todayStr();
       if (p === "yesterday") return d === yesterdayStr();
-      if (p === "custom" && dateFilter.start && dateFilter.end) {
-        return d >= extractDateOnly(dateFilter.start) && d <= extractDateOnly(dateFilter.end);
+      if (p === "custom" && dateFilter.range.from && dateFilter.range.to) {
+        return d >= extractDateOnly(dateFilter.range.from) && d <= extractDateOnly(dateFilter.range.to);
       }
       return true;
     });
@@ -462,26 +462,20 @@ export default function HistorialPage() {
           size="sm"
           variant={dateFilter.preset === "custom" ? "solid" : "outline"}
           color={dateFilter.preset === "custom" ? "brand" : "neutral"}
-          onClick={() => setDateFilter({ preset: "custom", start: null, end: null })}
+          onClick={() => setDateFilter({ preset: "custom", range: { from: undefined, to: undefined } })}
         >
           <Calendar aria-hidden="true" className="size-3.5" />
           Personalizado
         </Button>
 
         {dateFilter.preset === "custom" && (
-          <div className="flex items-center gap-2">
-            <DatePicker
-              value={dateFilter.start}
-              placeholder="Desde"
-              onChange={(date) => setDateFilter((prev) => ({ ...prev, start: date }))}
-            />
-            <span className="text-xs text-zinc-500">—</span>
-            <DatePicker
-              value={dateFilter.end}
-              placeholder="Hasta"
-              onChange={(date) => setDateFilter((prev) => ({ ...prev, end: date }))}
-            />
-          </div>
+          <DatePicker
+            selectionMode="between"
+            value={dateFilter.range}
+            onChange={(range) => setDateFilter((prev) => ({ ...prev, range }))}
+            placeholder="Seleccionar rango"
+            dateStyle="short"
+          />
         )}
 
         <span className="ml-auto text-sm text-zinc-500">

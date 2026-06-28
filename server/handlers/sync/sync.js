@@ -86,6 +86,7 @@ export default async function syncHandler(req, res) {
             audit: {
               createdByName: audit.createdBy?.nombre || audit.createdBy?.username || actorName,
               updatedByName: actorName,
+              updatedByAvatarId: audit.updatedBy?.avatarId || user.avatarId || null,
               clientCreatedAt: new Date(audit.createdAt || record.createdAt || Date.now()),
               clientUpdatedAt: clientUpdatedAt,
             },

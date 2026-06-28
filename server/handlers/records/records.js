@@ -120,6 +120,7 @@ export default async function recordsHandler(req, res) {
             ...enriched,
             updatedBy: user._id,
             "audit.updatedByName": user.nombre || user.username,
+            "audit.updatedByAvatarId": user.avatarId || null,
             "audit.clientUpdatedAt": new Date(),
           },
           $setOnInsert: {

@@ -13,7 +13,7 @@ export async function requireAuth(req, res) {
 
   try {
     const decoded = verifyAccessToken(token);
-    const user = await User.findById(decoded.id).select("_id username nombre role active granjasAsignadas");
+    const user = await User.findById(decoded.id).select("_id username nombre role active granjasAsignadas avatarId");
 
     if (!user || !user.active) {
       failure(res, "Unauthorized", 401);
