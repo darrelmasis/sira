@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Alert, Button, FormControl, Input, Label, Select, toast, DatePicker } from "quickit-ui";
 import { Save, Egg } from "lucide-react";
 import FormSectionSkeleton from "@/components/feedback/FormSectionSkeleton";
+import NumberStepper from "@/components/NumberStepper";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useFarmAccess } from "@/features/auth/farmAccess";
 import { usePermissions } from "@/features/auth/permissions";
@@ -303,42 +304,27 @@ export default function ProduccionPage() {
         </FormControl>
       </section>
 
-      <section className="rounded-xl border border-zinc-200/80 p-5 dark:border-zinc-800 space-y-6">
+      <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 space-y-5">
         <div className="flex items-center gap-2">
           <Egg aria-hidden="true" className="size-5 text-brand-500" />
-          <h2 className="text-lg font-semibold">Registro de producción</h2>
+          <h2 className="text-base font-semibold">Registro de producción</h2>
         </div>
 
         {Object.entries(categoriasPorClasificacion).map(([clasif, cats]) => (
           <div key={clasif}>
-            <h3 className="text-sm font-medium text-zinc-500 uppercase tracking-wider mb-3">{clasif}</h3>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2 px-1">{clasif}</h3>
+            <div className="flex flex-col gap-2">
               {cats.map((c) => (
-                <div key={c.id} className="flex items-center gap-2">
-                  <Label className="flex-1 text-sm truncate">{c.nombre}</Label>
-                  <Input
-                    type="number"
-                    inputMode="numeric"
-                    min={0}
-                    value={registros[c.id]}
-                    onChange={(e) => {
-                      const raw = e.target.value;
-                      if (raw === "" || raw === "0") {
-                        updateRegistro(c.id, raw === "" ? "" : "0");
-                      } else {
-                        const parsed = Number(raw);
-                        if (Number.isFinite(parsed) && parsed >= 0) {
-                          updateRegistro(c.id, raw);
-                        }
-                      }
-                    }}
-                    onBlur={() => {
-                      const v = registros[c.id];
-                      if (v === "" || v === "0") updateRegistro(c.id, "0");
-                    }}
-                    className="w-24 text-center"
-                    size="sm"
-                  />
+                <div key={c.id} className="flex items-center gap-3 min-w-0">
+                  <span className="text-sm text-zinc-700 dark:text-zinc-300 w-36 shrink-0 leading-tight">{c.nombre}</span>
+                  <div className="flex-1 max-w-56">
+                    <NumberStepper
+                      value={registros[c.id]}
+                      min={0}
+                      onChange={(value) => updateRegistro(c.id, value)}
+                      size="sm"
+                    />
+                  </div>
                 </div>
               ))}
             </div>
@@ -346,14 +332,14 @@ export default function ProduccionPage() {
         ))}
       </section>
 
-      <div className="flex flex-wrap items-center justify-end gap-4">
-        <div className="flex flex-wrap gap-4 text-sm">
-          <span className="text-brand-600 font-medium">Incubable: {totales.incubable}</span>
-          <span className="text-sky-600 font-medium">Comercial: {totales.comercial}</span>
-          <span className="text-zinc-500 font-medium">Descarte: {totales.descarte}</span>
-          <span className="font-semibold">Total: {totales.total}</span>
+      <div className="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200/80 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+          <span className="font-semibold text-brand-600">I: {totales.incubable}</span>
+          <span className="font-semibold text-sky-600">C: {totales.comercial}</span>
+          <span className="font-semibold text-zinc-500">D: {totales.descarte}</span>
+          <span className="font-bold">Total: {totales.total}</span>
         </div>
-        <Button type="submit" color="brand" loading={saving} loadingText="Guardando...">
+        <Button type="submit" color="brand" loading={saving} loadingText="Guardando..." className="w-full sm:w-auto">
           <Save aria-hidden="true" className="size-4" />
           Guardar producción
         </Button>

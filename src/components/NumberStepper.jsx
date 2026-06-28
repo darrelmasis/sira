@@ -10,6 +10,7 @@ export default function NumberStepper({
   disabled = false,
   id,
   className,
+  size = "lg",
 }) {
   const numericValue = value === "" ? 0 : Number(value);
 
@@ -19,8 +20,8 @@ export default function NumberStepper({
   }
 
   return (
-    <div className={cn("flex items-center gap-2", className)}>
-      <div className="flex-1">
+    <div className={cn("flex items-center gap-1", className)}>
+      <div className="flex-1 min-w-0">
         <Input
           id={id}
           type="number"
@@ -29,7 +30,8 @@ export default function NumberStepper({
           max={max}
           value={value}
           disabled={disabled}
-          className="text-center"
+          className="text-center tabular-nums"
+          size={size === "lg" ? "md" : size}
           onChange={(event) => {
             const raw = event.target.value;
             if (raw === "") {
@@ -45,7 +47,7 @@ export default function NumberStepper({
         type="button"
         color="neutral"
         shape="square"
-        size="lg"
+        size={size}
         aria-label="Disminuir"
         disabled={disabled || numericValue <= min}
         onClick={() => setValue(numericValue - step)}
@@ -56,7 +58,7 @@ export default function NumberStepper({
         type="button"
         color="neutral"
         shape="square"
-        size="lg"
+        size={size}
         aria-label="Aumentar"
         disabled={disabled || numericValue >= max}
         onClick={() => setValue(numericValue + step)}
