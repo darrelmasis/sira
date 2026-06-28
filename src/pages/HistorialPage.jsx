@@ -472,14 +472,18 @@ export default function HistorialPage() {
             setDateRange(range);
             setDatePreset("range");
           }}
-          placeholder="Seleccionar rango"
+          placeholder="Rango"
           dateStyle="short"
+          size="sm"
+          className="w-48"
         />
 
         <Select
           value={farmFilter}
           placeholder="Todas las granjas"
           onValueChange={(value) => setFarmFilter(value)}
+          size="sm"
+          className="w-44"
         >
           <option value="">Todas las granjas</option>
           {catalogs.farms.map((farm) => (
