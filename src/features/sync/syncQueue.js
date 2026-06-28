@@ -166,6 +166,36 @@ export async function syncPendingRecords(accessToken) {
   return { synced, failed };
 }
 
+export async function updateRecordInQueue(id, updates) {
+  const existing = await localDb.syncQueue.get(id);
+  if (!existing) return null;
+
+  const now = new Date().toISOString();
+  const next = {
+    ...existing,
+    payload: {
+      ...existing.payload,
+      ...updates.payload,
+      audit: {
+        ...existing.payload?.audit,
+        ...updates.payload?.audit,
+        updatedAt: now,
+        updatedBy: updates.auditActor || existing.payload?.audit?.updatedBy,
+      },
+    },
+    updatedAt: now,
+    syncStatus: "pending",
+    syncError: null,
+  };
+
+  await localDb.syncQueue.put(next);
+  return next;
+}
+
+export async function removeRecordFromQueue(id) {
+  return localDb.syncQueue.delete(id);
+}
+
 export async function clearFailedRecords() {
   return localDb.syncQueue.where("syncStatus").equals("failed").delete();
 }

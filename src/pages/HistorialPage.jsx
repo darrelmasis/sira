@@ -1,14 +1,35 @@
 import { useEffect, useMemo, useState } from "react";
-import { Badge, DataTable, FormDescription } from "quickit-ui";
+import {
+  Alert,
+  Badge,
+  Button,
+  DataTable,
+  FormControl,
+  Input,
+  Label,
+  Modal,
+  Select,
+  Textarea,
+  DatePicker,
+  FormDescription,
+  toast,
+} from "quickit-ui";
+import { ClipboardList, Save } from "lucide-react";
+import NumberStepper from "@/components/NumberStepper";
 import UserAvatar from "@/components/UserAvatar";
-import { ClipboardList } from "lucide-react";
 import TableSkeleton from "@/components/feedback/TableSkeleton";
 import ListEmptyState from "@/components/feedback/ListEmptyState";
+import RowActionsDropdown from "@/components/RowActionsDropdown";
 import { useFarmAccess } from "@/features/auth/farmAccess";
+import { usePermissions } from "@/features/auth/permissions";
 import { getLocalCatalogs } from "@/features/catalogs/catalogStore";
-import { getSyncQueue } from "@/features/sync/syncQueue";
+import { getSyncQueue, updateRecordInQueue, removeRecordFromQueue } from "@/features/sync/syncQueue";
+import { subscribeSync } from "@/features/sync/syncEngine";
+import { useConfirmDialog } from "@/components/feedback/useConfirmDialog";
 import { buildNameMap, normalizeId } from "@/lib/catalog-utils";
-import { formatDateShort, formatDateTime } from "@/lib/datetime";
+import { formatDateShort, formatDateInput, parseDateInput, formatDateTime } from "@/lib/datetime";
+import { api } from "@/lib/api";
+import { useAuth } from "@/features/auth/AuthContext";
 
 const syncStatusMeta = {
   pending: { label: "Pendiente", color: "warning" },
@@ -18,26 +39,46 @@ const syncStatusMeta = {
 };
 
 export default function HistorialPage() {
+  const { accessToken, user: currentUser } = useAuth();
   const { filterCatalogs, filterRecords } = useFarmAccess();
+  const { can } = usePermissions();
+  const { confirm, ConfirmDialogHost } = useConfirmDialog();
   const [records, setRecords] = useState([]);
   const [catalogs, setCatalogs] = useState({ farms: [], sheds: [], lots: [] });
   const [loading, setLoading] = useState(true);
 
+  const canEdit = can("records.edit");
+  const canDelete = can("records.delete");
+  const hasActions = canEdit || canDelete;
+
+  const [editRecord, setEditRecord] = useState(null);
+  const [editForm, setEditForm] = useState(null);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState("");
+
+  async function loadData(active) {
+    const [nextRecords, nextCatalogs] = await Promise.all([getSyncQueue(), getLocalCatalogs()]);
+    if (active !== undefined && !active()) return;
+    setRecords(filterRecords(nextRecords));
+    setCatalogs(filterCatalogs(nextCatalogs));
+  }
+
   useEffect(() => {
     let active = true;
 
-    Promise.all([getSyncQueue(), getLocalCatalogs()])
-      .then(([nextRecords, nextCatalogs]) => {
-        if (!active) return;
-        setRecords(filterRecords(nextRecords));
-        setCatalogs(filterCatalogs(nextCatalogs));
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+    loadData(() => active).finally(() => {
+      if (active) setLoading(false);
+    });
+
+    const unsub = subscribeSync((event) => {
+      if (event.type === "sync-complete" && active) {
+        loadData(() => active);
+      }
+    });
 
     return () => {
       active = false;
+      unsub();
     };
   }, [filterCatalogs, filterRecords]);
 
@@ -50,8 +91,120 @@ export default function HistorialPage() {
     [catalogs],
   );
 
-  const columns = useMemo(
-    () => [
+  function openEdit(record) {
+    const p = record.payload;
+    setEditRecord(record);
+    setEditForm({
+      fecha: formatDateInput(p.fecha),
+      granjaId: p.granjaId || "",
+      galponId: p.galponId || "",
+      loteId: p.loteId || "",
+      mortalidad: String(p.data?.mortalidad ?? "0"),
+      sexo: p.data?.sexo || "mixto",
+      causaMuerte: p.data?.causaMuerte || "",
+    });
+    setEditError("");
+    setEditSaving(false);
+  }
+
+  async function handleEditSubmit(event) {
+    event.preventDefault();
+    if (!editForm || !editRecord) return;
+
+    const mortality = Number(editForm.mortalidad);
+    if (mortality < 0) {
+      setEditError("La mortalidad debe ser cero o mayor.");
+      return;
+    }
+
+    setEditSaving(true);
+    setEditError("");
+
+    const updatedPayload = {
+      fecha: editForm.fecha,
+      granjaId: editForm.granjaId.trim(),
+      galponId: editForm.galponId.trim(),
+      loteId: editForm.loteId.trim(),
+      data: {
+        mortalidad: mortality,
+        sexo: editForm.sexo,
+        causaMuerte: editForm.causaMuerte.trim(),
+      },
+    };
+
+    try {
+      if (editRecord.syncStatus === "synced") {
+        const body = {
+          clientId: editRecord.id,
+          ...updatedPayload,
+          meta: editRecord.payload?.meta,
+        };
+        const response = await api("records", {
+          method: "PUT",
+          accessToken,
+          body: JSON.stringify(body),
+        });
+        if (!response.success) throw new Error(response.message || "Error al actualizar");
+      }
+
+      await updateRecordInQueue(editRecord.id, {
+        payload: updatedPayload,
+        auditActor: null,
+      });
+
+      toast({ title: "Registro actualizado", kind: "success" });
+
+      const nextRecords = await getSyncQueue();
+      setRecords(filterRecords(nextRecords));
+      setEditRecord(null);
+      setEditForm(null);
+    } catch (error) {
+      setEditError(error.message);
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
+  async function handleDelete(record) {
+    const confirmed = await confirm({
+      title: "Eliminar registro",
+      description: "Esta acción no se puede deshacer. El registro se eliminará del servidor y del dispositivo.",
+      confirmLabel: "Eliminar",
+    });
+    if (!confirmed) return;
+
+    try {
+      if (record.syncStatus === "synced") {
+        const response = await api(`records?id=${record.id}`, {
+          method: "DELETE",
+          accessToken,
+        });
+        if (!response.success) throw new Error(response.message || "Error al eliminar");
+      }
+
+      await removeRecordFromQueue(record.id);
+
+      toast({ title: "Registro eliminado", kind: "success" });
+
+      const nextRecords = await getSyncQueue();
+      setRecords(filterRecords(nextRecords));
+    } catch (error) {
+      toast({ title: error.message || "Error al eliminar", kind: "error" });
+    }
+  }
+
+  const filteredSheds = useMemo(
+    () => catalogs.sheds.filter((shed) => !editForm?.granjaId || normalizeId(shed.granjaId) === normalizeId(editForm.granjaId)),
+    [catalogs.sheds, editForm?.granjaId],
+  );
+
+  const filteredLots = useMemo(
+    () => catalogs.lots.filter((lot) => !editForm?.granjaId || normalizeId(lot.granjaId) === normalizeId(editForm.granjaId)),
+    [catalogs.lots, editForm?.granjaId],
+  );
+
+  const columns = useMemo(() => {
+    const cols = [
       {
         key: "fecha",
         header: "Fecha",
@@ -120,9 +273,14 @@ export default function HistorialPage() {
         render: (row) => {
           const actor = row.payload.audit?.updatedBy;
           const name = actor?.nombre || actor?.username || "—";
+          const isCurrentUser = actor && currentUser && String(actor.id) === String(currentUser._id || currentUser.id);
           return (
             <div className="flex items-center gap-2">
-              <UserAvatar user={actor} nombre={name} size="sm" />
+              <UserAvatar
+                user={isCurrentUser ? { ...actor, avatarId: currentUser.avatarId } : actor}
+                nombre={name}
+                size="sm"
+              />
               <span className="text-sm">{name}</span>
             </div>
           );
@@ -136,9 +294,35 @@ export default function HistorialPage() {
         render: (row) =>
           formatDateTime(row.payload.audit?.updatedAt || row.updatedAt),
       },
-    ],
-    [catalogMaps],
-  );
+    ];
+
+    if (hasActions) {
+      cols.push({
+        key: "actions",
+        header: "",
+        align: "right",
+        render: (row) => (
+          <RowActionsDropdown
+            onEdit={canEdit ? () => openEdit(row) : undefined}
+            onDelete={canDelete ? () => handleDelete(row) : undefined}
+          />
+        ),
+      });
+    }
+
+    return cols;
+  }, [catalogMaps, canEdit, canDelete, hasActions]);
+
+  function updateEditField(field, value) {
+    setEditForm((current) => {
+      const next = { ...current, [field]: value };
+      if (field === "granjaId") {
+        next.galponId = "";
+        next.loteId = "";
+      }
+      return next;
+    });
+  }
 
   if (loading) {
     return <TableSkeleton columns={columns} rows={6} />;
@@ -155,11 +339,12 @@ export default function HistorialPage() {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <FormDescription>
         {records.length} registro{records.length !== 1 ? "s" : ""} · incluye
         estado de sincronización y auditoría
       </FormDescription>
+
       <DataTable
         columns={columns}
         data={records}
@@ -167,6 +352,151 @@ export default function HistorialPage() {
         stickyHeader
         color="neutral"
       />
+
+      <ConfirmDialogHost />
+
+      <Modal open={!!editRecord} onOpenChange={(open) => { if (!open) { setEditRecord(null); setEditForm(null); } }}>
+        <Modal.Content onOpenAutoFocus={(e) => e.preventDefault()}>
+          <form onSubmit={handleEditSubmit}>
+            <Modal.Header>
+              <Modal.Title>Editar registro</Modal.Title>
+              <FormDescription>Corrige los datos del registro de mortalidad.</FormDescription>
+            </Modal.Header>
+
+            <Modal.Body className="space-y-4">
+              {editError && <Alert color="danger" title={editError} />}
+
+              <section className="grid gap-4 md:grid-cols-2">
+                <FormControl controlId="edit-fecha" required>
+                  <Label>Fecha</Label>
+                  <DatePicker
+                    id="edit-fecha"
+                    value={editForm ? parseDateInput(editForm.fecha) : null}
+                    onChange={(date) => updateEditField("fecha", formatDateInput(date))}
+                  />
+                </FormControl>
+
+                <FormControl controlId="edit-mortalidad" required>
+                  <Label>Cantidad de aves muertas</Label>
+                  <NumberStepper
+                    id="edit-mortalidad"
+                    value={editForm?.mortalidad ?? "0"}
+                    min={0}
+                    onChange={(value) => updateEditField("mortalidad", value)}
+                  />
+                </FormControl>
+
+                <FormControl controlId="edit-granjaId" required>
+                  <Label>Granja</Label>
+                  {catalogs.farms.length > 0 ? (
+                    <Select
+                      id="edit-granjaId"
+                      value={editForm?.granjaId || ""}
+                      placeholder="Seleccionar granja"
+                      onValueChange={(value) => updateEditField("granjaId", value)}
+                    >
+                      <option key="" value="">Seleccionar granja...</option>
+                      {catalogs.farms.map((farm) => (
+                        <option key={farm.id} value={farm.id}>{farm.nombre}</option>
+                      ))}
+                    </Select>
+                  ) : (
+                    <Input
+                      id="edit-granjaId"
+                      placeholder="ID de granja"
+                      value={editForm?.granjaId || ""}
+                      onChange={(e) => updateEditField("granjaId", e.target.value)}
+                    />
+                  )}
+                </FormControl>
+
+                <FormControl controlId="edit-galponId" required>
+                  <Label>Galpón</Label>
+                  {filteredSheds.length > 0 ? (
+                    <Select
+                      id="edit-galponId"
+                      value={editForm?.galponId || ""}
+                      placeholder="Seleccionar galpón"
+                      onValueChange={(value) => updateEditField("galponId", value)}
+                    >
+                      <option key="" value="">Seleccionar galpón...</option>
+                      {filteredSheds.map((shed) => (
+                        <option key={shed.id} value={shed.id}>{shed.nombre}</option>
+                      ))}
+                    </Select>
+                  ) : (
+                    <Input
+                      id="edit-galponId"
+                      placeholder="ID de galpón"
+                      value={editForm?.galponId || ""}
+                      onChange={(e) => updateEditField("galponId", e.target.value)}
+                    />
+                  )}
+                </FormControl>
+
+                <FormControl controlId="edit-loteId" required>
+                  <Label>Lote</Label>
+                  {filteredLots.length > 0 ? (
+                    <Select
+                      id="edit-loteId"
+                      value={editForm?.loteId || ""}
+                      placeholder="Seleccionar lote"
+                      onValueChange={(value) => updateEditField("loteId", value)}
+                    >
+                      <option key="" value="">Seleccionar lote...</option>
+                      {filteredLots.map((lot) => (
+                        <option key={lot.id} value={lot.id}>{lot.codigo}</option>
+                      ))}
+                    </Select>
+                  ) : (
+                    <Input
+                      id="edit-loteId"
+                      placeholder="Código de lote"
+                      value={editForm?.loteId || ""}
+                      onChange={(e) => updateEditField("loteId", e.target.value)}
+                    />
+                  )}
+                </FormControl>
+
+                <FormControl controlId="edit-sexo">
+                  <Label>Sexo</Label>
+                  <Select
+                    id="edit-sexo"
+                    value={editForm?.sexo || "mixto"}
+                    placeholder="Seleccionar sexo"
+                    onValueChange={(value) => updateEditField("sexo", value)}
+                  >
+                    <option value="mixto">Mixto</option>
+                    <option value="hembra">Hembra</option>
+                    <option value="macho">Macho</option>
+                  </Select>
+                </FormControl>
+              </section>
+
+              <FormControl controlId="edit-causaMuerte">
+                <Label>Causa de muerte</Label>
+                <Textarea
+                  id="edit-causaMuerte"
+                  minRows={2}
+                  placeholder="Ej. estrés calórico, problemas respiratorios..."
+                  value={editForm?.causaMuerte || ""}
+                  onChange={(e) => updateEditField("causaMuerte", e.target.value)}
+                />
+              </FormControl>
+            </Modal.Body>
+
+            <Modal.Actions>
+              <Modal.Action type="button" variant="ghost" onClick={() => { setEditRecord(null); setEditForm(null); }}>
+                Cancelar
+              </Modal.Action>
+              <Modal.Action type="submit" loading={editSaving} loadingText="Guardando...">
+                <Save aria-hidden="true" className="size-4" />
+                Guardar cambios
+              </Modal.Action>
+            </Modal.Actions>
+          </form>
+        </Modal.Content>
+      </Modal>
     </div>
   );
 }
