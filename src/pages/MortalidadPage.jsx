@@ -1,7 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Alert, Button, FormControl, Input, Label, Select, Textarea, toast, DatePicker } from "quickit-ui";
-import { Save } from "lucide-react";
+import {
+  Alert,
+  Button,
+  FormControl,
+  Input,
+  Label,
+  Select,
+  Textarea,
+  toast,
+  DatePicker,
+  cn,
+} from "quickit-ui";
+import { MapPin, FileText, BarChart3, Save } from "lucide-react";
 import NumberStepper from "@/components/ui/NumberStepper";
 import FormSectionSkeleton from "@/components/feedback/FormSectionSkeleton";
 import { useAuth } from "@/features/auth/AuthContext";
@@ -23,27 +34,52 @@ const initialForm = {
   causaMuerte: "",
 };
 
+const sexoOptions = [
+  { value: "mixto", label: "Mixto" },
+  { value: "macho", label: "Macho" },
+  { value: "hembra", label: "Hembra" },
+];
+
 function validateMortalidad(values, validateRecordDate) {
   const dateError = validateRecordDate(values.fecha);
   if (dateError) return dateError;
   if (!values.granjaId.trim()) return "La granja es obligatoria.";
   if (!values.galponId.trim()) return "El galpón es obligatorio.";
   if (!values.loteId.trim()) return "El lote es obligatorio.";
-  if (values.mortalidad === "" || Number(values.mortalidad) < 0) return "La mortalidad debe ser cero o mayor.";
+  if (values.mortalidad === "" || Number(values.mortalidad) < 0)
+    return "La mortalidad debe ser cero o mayor.";
   return "";
 }
 
 function validateCatalogRefs(values, catalogs) {
-  const farm = catalogs.farms.find((item) => normalizeId(item.id) === normalizeId(values.granjaId));
-  if (!farm) return "La granja seleccionada no está disponible. Actualiza catálogos en Configuración del sistema.";
+  const farm = catalogs.farms.find(
+    (item) => normalizeId(item.id) === normalizeId(values.granjaId),
+  );
+  if (!farm)
+    return "La granja seleccionada no está disponible. Actualiza catálogos en Configuración del sistema.";
 
-  const shed = catalogs.sheds.find((item) => normalizeId(item.id) === normalizeId(values.galponId));
-  if (!shed) return "El galpón seleccionado no está disponible. Actualiza catálogos en Configuración del sistema.";
+  const shed = catalogs.sheds.find(
+    (item) => normalizeId(item.id) === normalizeId(values.galponId),
+  );
+  if (!shed)
+    return "El galpón seleccionado no está disponible. Actualiza catálogos en Configuración del sistema.";
 
-  const lot = catalogs.lots.find((item) => normalizeId(item.id) === normalizeId(values.loteId));
-  if (!lot) return "El lote seleccionado no está disponible. Actualiza catálogos en Configuración del sistema.";
+  const lot = catalogs.lots.find(
+    (item) => normalizeId(item.id) === normalizeId(values.loteId),
+  );
+  if (!lot)
+    return "El lote seleccionado no está disponible. Actualiza catálogos en Configuración del sistema.";
 
   return "";
+}
+
+function SectionHeader({ icon: Icon, title }) {
+  return (
+    <div className="mb-4 flex items-center gap-2">
+      <Icon className="size-5 text-brand-500" />
+      <h2 className="text-base font-semibold">{title}</h2>
+    </div>
+  );
 }
 
 export default function MortalidadPage() {
@@ -59,12 +95,22 @@ export default function MortalidadPage() {
   const [saving, setSaving] = useState(false);
 
   const filteredSheds = useMemo(
-    () => catalogs.sheds.filter((shed) => !values.granjaId || normalizeId(shed.granjaId) === normalizeId(values.granjaId)),
+    () =>
+      catalogs.sheds.filter(
+        (shed) =>
+          !values.granjaId ||
+          normalizeId(shed.granjaId) === normalizeId(values.granjaId),
+      ),
     [catalogs.sheds, values.granjaId],
   );
 
   const filteredLots = useMemo(
-    () => catalogs.lots.filter((lot) => !values.granjaId || normalizeId(lot.granjaId) === normalizeId(values.granjaId)),
+    () =>
+      catalogs.lots.filter(
+        (lot) =>
+          !values.granjaId ||
+          normalizeId(lot.granjaId) === normalizeId(values.granjaId),
+      ),
     [catalogs.lots, values.granjaId],
   );
 
@@ -78,7 +124,10 @@ export default function MortalidadPage() {
         setCatalogs(scoped);
 
         if (scoped.farms.length === 1) {
-          setValues((current) => ({ ...current, granjaId: scoped.farms[0].id }));
+          setValues((current) => ({
+            ...current,
+            granjaId: scoped.farms[0].id,
+          }));
         }
       })
       .finally(() => {
@@ -183,7 +232,11 @@ export default function MortalidadPage() {
     );
   }
 
-  if (catalogs.farms.length === 0 || catalogs.sheds.length === 0 || catalogs.lots.length === 0) {
+  if (
+    catalogs.farms.length === 0 ||
+    catalogs.sheds.length === 0 ||
+    catalogs.lots.length === 0
+  ) {
     return (
       <Alert
         color="warning"
@@ -194,7 +247,7 @@ export default function MortalidadPage() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto max-w-3xl space-y-4">
+    <form onSubmit={handleSubmit} className="mx-auto max-w-3xl space-y-4 pb-20">
       {error && <Alert color="danger" title={error} />}
 
       {!can("records.editAnyDate") && (
@@ -205,100 +258,176 @@ export default function MortalidadPage() {
         />
       )}
 
-      <section className="grid gap-4 rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5 md:grid-cols-2">
-        <FormControl controlId="fecha" required>
-          <Label>Fecha</Label>
-          <DatePicker
-            id="fecha"
-            value={parseDateInput(values.fecha)}
-            placeholder="Seleccionar fecha del registro"
-            minDate={dateConstraints.minDate}
-            maxDate={dateConstraints.maxDate}
-            onChange={(date) => updateField("fecha", formatDateInput(date))}
-          />
-        </FormControl>
+      <div className="text-sm text-zinc-500 dark:text-zinc-400 -mt-2 mb-4">
+        Complete los detalles para registrar la baja de aves.
+      </div>
 
-        <FormControl controlId="mortalidad" required>
-          <Label>Cantidad de aves muertas</Label>
-          <NumberStepper
-            id="mortalidad"
-            value={values.mortalidad}
-            min={0}
-            onChange={(value) => updateField("mortalidad", value)}
-          />
-        </FormControl>
+      <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5">
+        <SectionHeader icon={MapPin} title="Ubicación" />
 
-        <FormControl controlId="granjaId" required>
-          <Label>Granja</Label>
-          {catalogs.farms.length > 0 ? (
-            <Select id="granjaId" value={values.granjaId} placeholder="Seleccionar granja" onValueChange={(value) => updateField("granjaId", value)}>
-              <option value="">Seleccionar granja...</option>
-              {catalogs.farms.map((farm) => (
-                <option key={farm.id} value={farm.id}>
-                  {farm.nombre}
-                </option>
-              ))}
-            </Select>
-          ) : (
-            <Input id="granjaId" placeholder="ID de granja" value={values.granjaId} onChange={(event) => updateField("granjaId", event.target.value)} />
-          )}
-        </FormControl>
+        <div className="space-y-4">
+          <FormControl controlId="granjaId" required>
+            <Label>Granja</Label>
+            {catalogs.farms.length > 0 ? (
+              <Select
+                id="granjaId"
+                value={values.granjaId}
+                placeholder="Seleccionar granja..."
+                onValueChange={(value) => updateField("granjaId", value)}
+              >
+                <option value="">Seleccionar granja...</option>
+                {catalogs.farms.map((farm) => (
+                  <option key={farm.id} value={farm.id}>
+                    {farm.nombre}
+                  </option>
+                ))}
+              </Select>
+            ) : (
+              <Input
+                id="granjaId"
+                placeholder="ID de granja"
+                value={values.granjaId}
+                onChange={(event) => updateField("granjaId", event.target.value)}
+              />
+            )}
+          </FormControl>
 
-        <FormControl controlId="galponId" required>
-          <Label>Galpón</Label>
-          {filteredSheds.length > 0 ? (
-            <Select id="galponId" value={values.galponId} placeholder="Seleccionar galpón" onValueChange={(value) => updateField("galponId", value)}>
-              <option value="">Seleccionar galpón...</option>
-              {filteredSheds.map((shed) => (
-                <option key={shed.id} value={shed.id}>
-                  {shed.nombre}
-                </option>
-              ))}
-            </Select>
-          ) : (
-            <Input id="galponId" placeholder="ID de galpón" value={values.galponId} onChange={(event) => updateField("galponId", event.target.value)} />
-          )}
-        </FormControl>
+          <div className="grid grid-cols-2 gap-4">
+            <FormControl controlId="galponId" required>
+              <Label>Galpón</Label>
+              {filteredSheds.length > 0 ? (
+                <Select
+                  id="galponId"
+                  value={values.galponId}
+                  placeholder="Seleccionar..."
+                  onValueChange={(value) => updateField("galponId", value)}
+                >
+                  <option value="">Seleccionar...</option>
+                  {filteredSheds.map((shed) => (
+                    <option key={shed.id} value={shed.id}>
+                      {shed.nombre}
+                    </option>
+                  ))}
+                </Select>
+              ) : (
+                <Input
+                  id="galponId"
+                  placeholder="ID de galpón"
+                  value={values.galponId}
+                  onChange={(event) =>
+                    updateField("galponId", event.target.value)
+                  }
+                />
+              )}
+            </FormControl>
 
-        <FormControl controlId="loteId" required>
-          <Label>Lote</Label>
-          {filteredLots.length > 0 ? (
-            <Select id="loteId" value={values.loteId} placeholder="Seleccionar lote" onValueChange={(value) => updateField("loteId", value)}>
-              <option value="">Seleccionar lote...</option>
-              {filteredLots.map((lot) => (
-                <option key={lot.id} value={lot.id}>
-                  {lot.codigo}
-                </option>
-              ))}
-            </Select>
-          ) : (
-            <Input id="loteId" placeholder="Código de lote" value={values.loteId} onChange={(event) => updateField("loteId", event.target.value)} />
-          )}
-        </FormControl>
-
-        <FormControl controlId="sexo">
-          <Label>Sexo</Label>
-          <Select id="sexo" value={values.sexo} placeholder="Seleccionar sexo" onValueChange={(value) => updateField("sexo", value)}>
-            <option value="mixto">Mixto</option>
-            <option value="hembra">Hembra</option>
-            <option value="macho">Macho</option>
-          </Select>
-        </FormControl>
-
-        <FormControl controlId="causaMuerte" className="md:col-span-2">
-          <Label>Causa de muerte</Label>
-          <Textarea
-            id="causaMuerte"
-            minRows={3}
-            placeholder="Ej. estrés calórico, problemas respiratorios..."
-            value={values.causaMuerte}
-            onChange={(event) => updateField("causaMuerte", event.target.value)}
-          />
-        </FormControl>
+            <FormControl controlId="loteId" required>
+              <Label>Lote</Label>
+              {filteredLots.length > 0 ? (
+                <Select
+                  id="loteId"
+                  value={values.loteId}
+                  placeholder="Seleccionar..."
+                  onValueChange={(value) => updateField("loteId", value)}
+                >
+                  <option value="">Seleccionar...</option>
+                  {filteredLots.map((lot) => (
+                    <option key={lot.id} value={lot.id}>
+                      {lot.codigo}
+                    </option>
+                  ))}
+                </Select>
+              ) : (
+                <Input
+                  id="loteId"
+                  placeholder="Código de lote"
+                  value={values.loteId}
+                  onChange={(event) =>
+                    updateField("loteId", event.target.value)
+                  }
+                />
+              )}
+            </FormControl>
+          </div>
+        </div>
       </section>
 
-      <div className="flex justify-end">
-        <Button type="submit" color="brand" loading={saving} loadingText="Guardando...">
+      <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5">
+        <SectionHeader icon={FileText} title="Detalles del Registro" />
+
+        <div className="space-y-4">
+          <FormControl controlId="fecha" required>
+            <Label>Fecha</Label>
+            <DatePicker
+              id="fecha"
+              value={parseDateInput(values.fecha)}
+              placeholder="Seleccionar fecha del registro"
+              minDate={dateConstraints.minDate}
+              maxDate={dateConstraints.maxDate}
+              onChange={(date) => updateField("fecha", formatDateInput(date))}
+            />
+          </FormControl>
+
+          <div>
+            <Label>Sexo *</Label>
+            <div className="mt-1.5 grid grid-cols-3 gap-1 rounded-lg border border-zinc-200 p-1 dark:border-zinc-700">
+              {sexoOptions.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => updateField("sexo", opt.value)}
+                  className={cn(
+                    "rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                    values.sexo === opt.value
+                      ? "bg-brand-500 text-white shadow-sm"
+                      : "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800",
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5">
+        <SectionHeader icon={BarChart3} title="Métricas" />
+
+        <div className="space-y-4">
+          <FormControl controlId="mortalidad" required>
+            <Label>Cantidad de aves muertas</Label>
+            <NumberStepper
+              id="mortalidad"
+              value={values.mortalidad}
+              min={0}
+              onChange={(value) => updateField("mortalidad", value)}
+            />
+          </FormControl>
+
+          <FormControl controlId="causaMuerte">
+            <Label>Causa de muerte</Label>
+            <Textarea
+              id="causaMuerte"
+              minRows={3}
+              placeholder="Ej. estrés calórico, problemas respiratorios..."
+              value={values.causaMuerte}
+              onChange={(event) =>
+                updateField("causaMuerte", event.target.value)
+              }
+            />
+          </FormControl>
+        </div>
+      </section>
+
+      <div className="fixed bottom-0 left-0 right-0 z-10 border-t border-zinc-200/80 bg-white px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] dark:border-zinc-800 dark:bg-zinc-950 dark:shadow-[0_-4px_12px_rgba(0,0,0,0.2)]">
+        <Button
+          type="submit"
+          color="brand"
+          loading={saving}
+          loadingText="Guardando..."
+          className="mx-auto w-full max-w-3xl"
+        >
           <Save aria-hidden="true" className="size-4" />
           Guardar registro
         </Button>

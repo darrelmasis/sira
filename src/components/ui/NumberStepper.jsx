@@ -49,8 +49,10 @@ export default function NumberStepper({
         shape="square"
         size={size}
         aria-label="Disminuir"
+        activeMotion={true}
         disabled={disabled || numericValue <= min}
         onClick={() => setValue(numericValue - step)}
+        className={disabled ? "!opacity-100" : null}
       >
         <Minus aria-hidden="true" className="size-4" />
       </Button>
@@ -59,6 +61,7 @@ export default function NumberStepper({
         color="brand"
         shape="square"
         size={size}
+        activeMotion={true}
         aria-label="Aumentar"
         disabled={disabled || numericValue >= max}
         onClick={() => setValue(numericValue + step)}

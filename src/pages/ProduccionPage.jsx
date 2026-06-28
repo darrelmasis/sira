@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Alert, Button, FormControl, Input, Label, Select, toast, DatePicker } from "quickit-ui";
-import { Save, Egg } from "lucide-react";
+import { MapPin, FileText, Egg, Save } from "lucide-react";
 import FormSectionSkeleton from "@/components/feedback/FormSectionSkeleton";
 import NumberStepper from "@/components/ui/NumberStepper";
 import { useAuth } from "@/features/auth/AuthContext";
@@ -28,6 +28,15 @@ const initialForm = {
   galponId: "",
   loteId: "",
 };
+
+function SectionHeader({ icon: Icon, title }) {
+  return (
+    <div className="mb-4 flex items-center gap-2">
+      <Icon className="size-5 text-brand-500" />
+      <h2 className="text-base font-semibold">{title}</h2>
+    </div>
+  );
+}
 
 export default function ProduccionPage() {
   const navigate = useNavigate();
@@ -227,7 +236,7 @@ export default function ProduccionPage() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto max-w-3xl space-y-4">
+    <form onSubmit={handleSubmit} className="mx-auto max-w-3xl space-y-4 pb-20">
       {error && <Alert color="danger" title={error} />}
 
       {!can("records.editAnyDate") && (
@@ -238,111 +247,126 @@ export default function ProduccionPage() {
         />
       )}
 
-      <section className="grid gap-4 rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5 md:grid-cols-3">
-        <FormControl controlId="granjaId" required>
-          <Label>Granja</Label>
-          {catalogs.farms.length > 0 ? (
-            <Select id="granjaId" value={values.granjaId} placeholder="Seleccionar granja" onValueChange={(value) => updateField("granjaId", value)}>
-              <option value="">Seleccionar granja...</option>
-              {catalogs.farms.map((farm) => (
-                <option key={farm.id} value={farm.id}>{farm.nombre}</option>
-              ))}
-            </Select>
-          ) : (
-            <Input id="granjaId" placeholder="ID de granja" value={values.granjaId} onChange={(event) => updateField("granjaId", event.target.value)} />
-          )}
-        </FormControl>
+      <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5">
+        <SectionHeader icon={MapPin} title="Ubicación" />
 
-        <FormControl controlId="galponId" required>
-          <Label>Galpón</Label>
-          {filteredSheds.length > 0 ? (
-            <Select id="galponId" value={values.galponId} placeholder="Seleccionar galpón" onValueChange={(value) => updateField("galponId", value)}>
-              <option value="">Seleccionar galpón...</option>
-              {filteredSheds.map((shed) => (
-                <option key={shed.id} value={shed.id}>{shed.nombre}</option>
-              ))}
-            </Select>
-          ) : (
-            <Input id="galponId" placeholder="ID de galpón" value={values.galponId} onChange={(event) => updateField("galponId", event.target.value)} />
-          )}
-        </FormControl>
+        <div className="space-y-4">
+          <FormControl controlId="granjaId" required>
+            <Label>Granja</Label>
+            {catalogs.farms.length > 0 ? (
+              <Select id="granjaId" value={values.granjaId} placeholder="Seleccionar granja..." onValueChange={(value) => updateField("granjaId", value)}>
+                <option value="">Seleccionar granja...</option>
+                {catalogs.farms.map((farm) => (
+                  <option key={farm.id} value={farm.id}>{farm.nombre}</option>
+                ))}
+              </Select>
+            ) : (
+              <Input id="granjaId" placeholder="ID de granja" value={values.granjaId} onChange={(event) => updateField("granjaId", event.target.value)} />
+            )}
+          </FormControl>
 
-        <FormControl controlId="loteId" required>
-          <Label>Lote</Label>
-          {filteredLots.length > 0 ? (
-            <Select id="loteId" value={values.loteId} placeholder="Seleccionar lote" onValueChange={(value) => updateField("loteId", value)}>
-              <option value="">Seleccionar lote...</option>
-              {filteredLots.map((lot) => (
-                <option key={lot.id} value={lot.id}>{lot.codigo}</option>
-              ))}
-            </Select>
-          ) : (
-            <Input id="loteId" placeholder="Código de lote" value={values.loteId} onChange={(event) => updateField("loteId", event.target.value)} />
-          )}
-        </FormControl>
+          <div className="grid grid-cols-2 gap-4">
+            <FormControl controlId="galponId" required>
+              <Label>Galpón</Label>
+              {filteredSheds.length > 0 ? (
+                <Select id="galponId" value={values.galponId} placeholder="Seleccionar..." onValueChange={(value) => updateField("galponId", value)}>
+                  <option value="">Seleccionar...</option>
+                  {filteredSheds.map((shed) => (
+                    <option key={shed.id} value={shed.id}>{shed.nombre}</option>
+                  ))}
+                </Select>
+              ) : (
+                <Input id="galponId" placeholder="ID de galpón" value={values.galponId} onChange={(event) => updateField("galponId", event.target.value)} />
+              )}
+            </FormControl>
 
-        <FormControl controlId="fecha" required>
-          <Label>Fecha</Label>
-          <DatePicker
-            id="fecha"
-            value={parseDateInput(values.fecha)}
-            placeholder="Seleccionar fecha del registro"
-            minDate={dateConstraints.minDate}
-            maxDate={dateConstraints.maxDate}
-            onChange={(date) => updateField("fecha", formatDateInput(date))}
-          />
-        </FormControl>
-
-        <FormControl controlId="edad">
-          <Label>Edad (semanas)</Label>
-          <Input id="edad" value={edad !== null ? String(edad) : "—"} disabled />
-        </FormControl>
-
-        <FormControl controlId="raza">
-          <Label>Raza</Label>
-          <Input id="raza" value={raza || "—"} disabled />
-        </FormControl>
-      </section>
-
-      <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5 space-y-5">
-        <div className="flex items-center gap-2">
-          <Egg aria-hidden="true" className="size-5 text-brand-500" />
-          <h2 className="text-base font-semibold">Registro de producción</h2>
-        </div>
-
-        {Object.entries(categoriasPorClasificacion).map(([clasif, cats]) => (
-          <div key={clasif}>
-            <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2 px-1">{clasif}</h3>
-            <div className="flex flex-col gap-2">
-              {cats.map((c) => (
-                <div key={c.id} className="flex items-center gap-3 min-w-0">
-                  <span className="text-sm text-zinc-700 dark:text-zinc-300 w-32 shrink-0 leading-tight sm:w-36">{c.nombre}</span>
-                  <div className="flex-1 max-w-56">
-                    <NumberStepper
-                      value={registros[c.id]}
-                      min={0}
-                      onChange={(value) => updateRegistro(c.id, value)}
-                      size="sm"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+            <FormControl controlId="loteId" required>
+              <Label>Lote</Label>
+              {filteredLots.length > 0 ? (
+                <Select id="loteId" value={values.loteId} placeholder="Seleccionar..." onValueChange={(value) => updateField("loteId", value)}>
+                  <option value="">Seleccionar...</option>
+                  {filteredLots.map((lot) => (
+                    <option key={lot.id} value={lot.id}>{lot.codigo}</option>
+                  ))}
+                </Select>
+              ) : (
+                <Input id="loteId" placeholder="Código de lote" value={values.loteId} onChange={(event) => updateField("loteId", event.target.value)} />
+              )}
+            </FormControl>
           </div>
-        ))}
+        </div>
       </section>
 
-      <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200/80 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] dark:shadow-[0_-4px_12px_rgba(0,0,0,0.2)]">
-        <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs sm:text-sm">
-          <span className="font-semibold text-brand-600">I: {totales.incubable}</span>
-          <span className="font-semibold text-sky-600">C: {totales.comercial}</span>
-          <span className="font-semibold text-zinc-500">D: {totales.descarte}</span>
-          <span className="font-bold">Total: {totales.total}</span>
+      <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5">
+        <SectionHeader icon={FileText} title="Detalles del Registro" />
+
+        <div className="space-y-4">
+          <FormControl controlId="fecha" required>
+            <Label>Fecha</Label>
+            <DatePicker
+              id="fecha"
+              value={parseDateInput(values.fecha)}
+              placeholder="Seleccionar fecha del registro"
+              minDate={dateConstraints.minDate}
+              maxDate={dateConstraints.maxDate}
+              onChange={(date) => updateField("fecha", formatDateInput(date))}
+            />
+          </FormControl>
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormControl controlId="edad">
+              <Label>Edad (semanas)</Label>
+              <Input id="edad" value={edad !== null ? String(edad) : "—"} disabled />
+            </FormControl>
+
+            <FormControl controlId="raza">
+              <Label>Raza</Label>
+              <Input id="raza" value={raza || "—"} disabled />
+            </FormControl>
+          </div>
         </div>
-        <Button type="submit" color="brand" loading={saving} loadingText="Guardando..." className="w-full sm:w-auto">
-          <Save aria-hidden="true" className="size-4" />
-          Guardar
-        </Button>
+      </section>
+
+      <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5">
+        <SectionHeader icon={Egg} title="Registro de producción" />
+
+        <div className="space-y-5">
+          {Object.entries(categoriasPorClasificacion).map(([clasif, cats]) => (
+            <div key={clasif}>
+              <h3 className="mb-2 px-1 text-xs font-semibold uppercase tracking-wider text-zinc-400">{clasif}</h3>
+              <div className="flex flex-col gap-2">
+                {cats.map((c) => (
+                  <div key={c.id} className="flex min-w-0 items-center gap-3">
+                    <span className="w-32 shrink-0 text-sm leading-tight text-zinc-700 dark:text-zinc-300 sm:w-36">{c.nombre}</span>
+                    <div className="max-w-56 flex-1">
+                      <NumberStepper
+                        value={registros[c.id]}
+                        min={0}
+                        onChange={(value) => updateRegistro(c.id, value)}
+                        size="sm"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <div className="fixed bottom-0 left-0 right-0 z-10 border-t border-zinc-200/80 bg-white px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] dark:border-zinc-800 dark:bg-zinc-950 dark:shadow-[0_-4px_12px_rgba(0,0,0,0.2)]">
+        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-2">
+          <div className="flex gap-3 text-xs sm:text-sm">
+            <span className="font-semibold text-brand-600">I: {totales.incubable}</span>
+            <span className="font-semibold text-sky-600">C: {totales.comercial}</span>
+            <span className="font-semibold text-zinc-500">D: {totales.descarte}</span>
+            <span className="font-bold">Total: {totales.total}</span>
+          </div>
+          <Button type="submit" color="brand" loading={saving} loadingText="Guardando..." className="w-full sm:w-auto">
+            <Save aria-hidden="true" className="size-4" />
+            Guardar registro
+          </Button>
+        </div>
       </div>
     </form>
   );
