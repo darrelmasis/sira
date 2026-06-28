@@ -40,8 +40,14 @@ export const farmCatalogConfig = {
   },
   toPayload: (form) => ({ ...form, nombre: form.nombre.trim() }),
   buildColumns: ({ openEdit, handleDelete }) => [
-    { key: "nombre", header: "Nombre", render: (row) => row.nombre },
-    { key: "tipo", header: "Tipo", render: (row) => <span className="capitalize">{row.tipo}</span> },
+    { key: "nombre", header: "Nombre", sortable: true, render: (row) => row.nombre },
+    { key: "tipo", header: "Tipo", sortable: true, render: (row) => <span className="capitalize">{row.tipo}</span> },
+    {
+      key: "createdAt",
+      header: "Fecha registro",
+      sortable: true,
+      render: (row) => row.createdAt ? formatDateShort(row.createdAt) : "—",
+    },
     {
       key: "actions",
       header: "",
@@ -111,11 +117,18 @@ export const shedCatalogConfig = {
   },
   toPayload: (form) => ({ ...form, nombre: form.nombre.trim() }),
   buildColumns: ({ meta, openEdit, handleDelete }) => [
-    { key: "nombre", header: "Nombre", render: (row) => row.nombre },
+    { key: "nombre", header: "Nombre", sortable: true, render: (row) => row.nombre },
     {
       key: "granja",
       header: "Granja",
+      sortable: true,
       render: (row) => labelForId(meta.farms, row.granjaId, "nombre", "Sin granja"),
+    },
+    {
+      key: "createdAt",
+      header: "Fecha registro",
+      sortable: true,
+      render: (row) => row.createdAt ? formatDateShort(row.createdAt) : "—",
     },
     {
       key: "actions",
@@ -218,23 +231,31 @@ export const lotCatalogConfig = {
   },
   toPayload: (form) => ({ ...form, codigo: form.codigo.trim() }),
   buildColumns: ({ meta, openEdit, handleDelete }) => [
-    { key: "codigo", header: "Código", render: (row) => row.codigo },
+    { key: "codigo", header: "Código", sortable: true, render: (row) => row.codigo },
     {
       key: "fechaAlojamiento",
       header: "Fecha aloj.",
+      sortable: true,
       render: (row) => (row.fechaAlojamiento ? formatDateShort(row.fechaAlojamiento) : "—"),
     },
     {
       key: "granja",
       header: "Granja",
+      sortable: true,
       render: (row) => labelForId(meta.farms, row.granjaId, "nombre", "Sin granja"),
     },
-    { key: "raza", header: "Raza", render: (row) => row.raza },
-    { key: "sexo", header: "Sexo", render: (row) => <span className="capitalize">{row.sexo}</span> },
-    { key: "etapa", header: "Etapa", render: (row) => <span className="capitalize font-semibold text-brand-600">{row.etapa || "levante"}</span> },
-    { key: "estado", header: "Estado", render: (row) => <span className="capitalize">{row.estado}</span> },
-    { key: "hembras", header: "Hembras", align: "right", render: (row) => row.hembras },
-    { key: "machos", header: "Machos", align: "right", render: (row) => row.machos },
+    { key: "raza", header: "Raza", sortable: true, render: (row) => row.raza },
+    { key: "sexo", header: "Sexo", sortable: true, render: (row) => <span className="capitalize">{row.sexo}</span> },
+    { key: "etapa", header: "Etapa", sortable: true, render: (row) => <span className="capitalize font-semibold text-brand-600">{row.etapa || "levante"}</span> },
+    { key: "estado", header: "Estado", sortable: true, render: (row) => <span className="capitalize">{row.estado}</span> },
+    { key: "hembras", header: "Hembras", sortable: true, align: "right", render: (row) => row.hembras },
+    { key: "machos", header: "Machos", sortable: true, align: "right", render: (row) => row.machos },
+    {
+      key: "createdAt",
+      header: "Fecha registro",
+      sortable: true,
+      render: (row) => row.createdAt ? formatDateShort(row.createdAt) : "—",
+    },
     {
       key: "actions",
       header: "",
@@ -416,34 +437,39 @@ export const placementCatalogConfig = {
     {
       key: "fechaAlojamiento",
       header: "Fecha",
+      sortable: true,
       render: (row) => formatDateShort(row.fechaAlojamiento),
     },
     {
       key: "lote",
       header: "Lote",
+      sortable: true,
       render: (row) => labelForId(meta.lots, row.loteId, "codigo", "Sin lote"),
     },
     {
       key: "galpon",
       header: "Galpón",
+      sortable: true,
       render: (row) => labelForId(meta.sheds, row.galponId, "nombre", "Sin galpón"),
     },
     {
       key: "tipo",
       header: "Fase",
+      sortable: true,
       render: (row) => <span className="capitalize font-medium">{row.tipo || "levante"}</span>
     },
     {
       key: "estado",
       header: "Estado",
+      sortable: true,
       render: (row) => (
         <span className={`capitalize font-semibold ${row.estado === "cerrado" ? "text-zinc-400" : "text-emerald-600"}`}>
           {row.estado || "activo"}
         </span>
       )
     },
-    { key: "hembras", header: "Hembras", align: "right", render: (row) => row.hembras },
-    { key: "machos", header: "Machos", align: "right", render: (row) => row.machos },
+    { key: "hembras", header: "Hembras", sortable: true, align: "right", render: (row) => row.hembras },
+    { key: "machos", header: "Machos", sortable: true, align: "right", render: (row) => row.machos },
     {
       key: "actions",
       header: "",
