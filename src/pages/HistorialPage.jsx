@@ -14,7 +14,7 @@ import {
   FormDescription,
   toast,
 } from "quickit-ui";
-import { ClipboardList, Eye, Save } from "lucide-react";
+import { Calendar, ClipboardList, Eye, Save } from "lucide-react";
 import NumberStepper from "@/components/NumberStepper";
 import UserAvatar from "@/components/UserAvatar";
 import TableSkeleton from "@/components/feedback/TableSkeleton";
@@ -27,9 +27,13 @@ import { getSyncQueue, updateRecordInQueue, removeRecordFromQueue } from "@/feat
 import { subscribeSync } from "@/features/sync/syncEngine";
 import { useConfirmDialog } from "@/components/feedback/useConfirmDialog";
 import { buildNameMap, normalizeId } from "@/lib/catalog-utils";
-import { formatDateShort, formatDateInput, parseDateInput, formatDateTime } from "@/lib/datetime";
+import { extractDateOnly, formatDateShort, formatDateInput, parseDateInput, formatDateTime } from "@/lib/datetime";
 import { api } from "@/lib/api";
 import { useAuth } from "@/features/auth/AuthContext";
+
+const POLL_INTERVAL = 15_000;
+const todayStr = () => extractDateOnly(new Date());
+const yesterdayStr = () => extractDateOnly(new Date(Date.now() - 86400000));
 
 const syncStatusMeta = {
   pending: { label: "Pendiente", color: "warning" },
@@ -52,6 +56,7 @@ export default function HistorialPage() {
   const canDelete = can("records.delete");
   const hasActions = canView || canEdit || canDelete;
 
+  const [dateFilter, setDateFilter] = useState({ preset: "all", start: null, end: null });
   const [viewRecord, setViewRecord] = useState(null);
   const [editRecord, setEditRecord] = useState(null);
   const [editForm, setEditForm] = useState(null);
@@ -131,11 +136,31 @@ export default function HistorialPage() {
       }
     });
 
+    const interval = setInterval(() => {
+      if (active) loadData(() => active);
+    }, POLL_INTERVAL);
+
     return () => {
       active = false;
       unsub();
+      clearInterval(interval);
     };
   }, [filterCatalogs, filterRecords]);
+
+  const filteredRecords = useMemo(() => {
+    const p = dateFilter.preset;
+    if (p === "all") return records;
+    return records.filter((r) => {
+      const d = extractDateOnly(r.payload.fecha);
+      if (!d) return false;
+      if (p === "today") return d === todayStr();
+      if (p === "yesterday") return d === yesterdayStr();
+      if (p === "custom" && dateFilter.start && dateFilter.end) {
+        return d >= extractDateOnly(dateFilter.start) && d <= extractDateOnly(dateFilter.end);
+      }
+      return true;
+    });
+  }, [records, dateFilter]);
 
   const catalogMaps = useMemo(
     () => ({
@@ -388,7 +413,7 @@ export default function HistorialPage() {
     return <TableSkeleton columns={columns} rows={6} />;
   }
 
-  if (records.length === 0) {
+  if (!loading && records.length === 0) {
     return (
       <ListEmptyState
         icon={ClipboardList}
@@ -398,16 +423,75 @@ export default function HistorialPage() {
     );
   }
 
+  function setPreset(preset) {
+    setDateFilter({ preset, start: null, end: null });
+  }
+
   return (
     <div className="space-y-4">
-      <FormDescription>
-        {records.length} registro{records.length !== 1 ? "s" : ""} · incluye
-        estado de sincronización y auditoría
-      </FormDescription>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          type="button"
+          size="sm"
+          variant={dateFilter.preset === "all" ? "solid" : "outline"}
+          color={dateFilter.preset === "all" ? "brand" : "neutral"}
+          onClick={() => setPreset("all")}
+        >
+          Todas
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant={dateFilter.preset === "today" ? "solid" : "outline"}
+          color={dateFilter.preset === "today" ? "brand" : "neutral"}
+          onClick={() => setPreset("today")}
+        >
+          Hoy
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant={dateFilter.preset === "yesterday" ? "solid" : "outline"}
+          color={dateFilter.preset === "yesterday" ? "brand" : "neutral"}
+          onClick={() => setPreset("yesterday")}
+        >
+          Ayer
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant={dateFilter.preset === "custom" ? "solid" : "outline"}
+          color={dateFilter.preset === "custom" ? "brand" : "neutral"}
+          onClick={() => setDateFilter({ preset: "custom", start: null, end: null })}
+        >
+          <Calendar aria-hidden="true" className="size-3.5" />
+          Personalizado
+        </Button>
+
+        {dateFilter.preset === "custom" && (
+          <div className="flex items-center gap-2">
+            <DatePicker
+              value={dateFilter.start}
+              placeholder="Desde"
+              onChange={(date) => setDateFilter((prev) => ({ ...prev, start: date }))}
+            />
+            <span className="text-xs text-zinc-500">—</span>
+            <DatePicker
+              value={dateFilter.end}
+              placeholder="Hasta"
+              onChange={(date) => setDateFilter((prev) => ({ ...prev, end: date }))}
+            />
+          </div>
+        )}
+
+        <span className="ml-auto text-sm text-zinc-500">
+          {filteredRecords.length} de {records.length} registro{records.length !== 1 ? "s" : ""}
+        </span>
+      </div>
 
       <DataTable
         columns={columns}
-        data={records}
+        data={filteredRecords}
         rowKey={(row) => row.id}
         stickyHeader
         color="neutral"
