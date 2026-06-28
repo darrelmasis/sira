@@ -11,7 +11,6 @@ import {
 } from "@/features/auth/permissions";
 import { useAuth } from "@/features/auth/AuthContext";
 import { usePermissions } from "@/features/auth/permissions";
-import TableSkeleton from "@/components/feedback/TableSkeleton";
 
 export default function RolePermissionsPanel() {
   const { accessToken, applyPermissions } = useAuth();
@@ -103,7 +102,11 @@ export default function RolePermissionsPanel() {
   }
 
   if (loading) {
-    return <TableSkeleton columns={3} rows={4} showActionsColumn />;
+    return (
+      <div className="flex items-center justify-center py-12 text-sm text-zinc-500">
+        Cargando permisos...
+      </div>
+    );
   }
 
   return (

@@ -8,16 +8,6 @@ export default function CatalogCrudPanel({ config }) {
   const crud = useCatalogCrud(config);
   const { ConfirmDialogHost } = crud;
 
-  if (crud.loading) {
-    return (
-      <TableSkeleton
-        columns={crud.skeleton.columns}
-        rows={crud.skeleton.rows}
-        showActionsColumn
-      />
-    );
-  }
-
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
@@ -26,7 +16,9 @@ export default function CatalogCrudPanel({ config }) {
         </Button>
       </div>
 
-      {crud.prerequisiteEmpty ? (
+      {crud.loading ? (
+        <TableSkeleton columns={crud.columns} rows={crud.skeleton.rows} />
+      ) : crud.prerequisiteEmpty ? (
         <ListEmptyState {...crud.prerequisiteEmpty} />
       ) : crud.data.length === 0 && crud.empty ? (
         <ListEmptyState
