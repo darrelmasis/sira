@@ -149,7 +149,7 @@ export default function ProduccionPage() {
     }
 
     const registrosData = EGG_CATEGORIES
-      .map((c) => ({ categoria: c.id, cantidad: Number(registros[c.id] || 0) }))
+      .map((c) => ({ categoria: c.id, cantidad: Math.floor(Number(registros[c.id] || 0)) }))
       .filter((r) => r.cantidad > 0);
 
     if (registrosData.length === 0) {

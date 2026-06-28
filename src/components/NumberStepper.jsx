@@ -12,10 +12,11 @@ export default function NumberStepper({
   className,
   size = "lg",
 }) {
-  const numericValue = value === "" ? 0 : Number(value);
+  const numericValue = value === "" ? 0 : parseInt(value, 10) || 0;
 
   function setValue(next) {
-    const clamped = Math.min(max, Math.max(min, next));
+    const intVal = Math.floor(next);
+    const clamped = Math.min(max, Math.max(min, intVal));
     onChange(String(clamped));
   }
 
@@ -33,13 +34,12 @@ export default function NumberStepper({
           className="text-center tabular-nums"
           size={size === "lg" ? "md" : size}
           onChange={(event) => {
-            const raw = event.target.value;
+            const raw = event.target.value.replace(/[^0-9]/g, "");
             if (raw === "") {
               onChange("");
               return;
             }
-            const parsed = Number(raw);
-            if (Number.isFinite(parsed)) setValue(parsed);
+            setValue(parseInt(raw, 10));
           }}
         />
       </div>
