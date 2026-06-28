@@ -52,7 +52,7 @@ export default function MortalidadPage() {
   const { user, accessToken } = useAuth();
   const { validateRecordDate, dateConstraints, can } = usePermissions();
   const { filterCatalogs, hasAssignedFarms, canAccessFarm } = useFarmAccess();
-  const { syncAfterSave, syncNow, isSyncing, isOnline } = useSync();
+  const { syncAfterSave, isOnline } = useSync();
   const [values, setValues] = useState(initialForm);
   const [catalogs, setCatalogs] = useState({ farms: [], sheds: [], lots: [] });
   const [loadingCatalogs, setLoadingCatalogs] = useState(true);
@@ -83,18 +83,38 @@ export default function MortalidadPage() {
   }, [filterCatalogs]);
 
   const tryDownloadCatalogs = useCallback(async () => {
-    if (!accessToken) return;
+    if (!accessToken) {
+      setError("No hay token de acceso. Vuelve a iniciar sesión.");
+      return;
+    }
     setSyncingCatalogs(true);
     setError("");
     try {
       await refreshCatalogs(accessToken);
-      await loadCatalogs();
+      const scoped = await loadCatalogs();
+      const raw = await getLocalCatalogs();
+      const userFarms = user?.granjasAsignadas || [];
+      if (scoped.farms.length === 0 && scoped.sheds.length === 0 && scoped.lots.length === 0) {
+        if (raw.farms.length > 0 && userFarms.length > 0) {
+          setError(
+            `Hay ${raw.farms.length} granja(s) en el servidor pero tu usuario (${userFarms.length} asignada(s)) no coincide con ninguna. Revisa las granjas asignadas en Usuarios.`,
+          );
+        } else if (raw.farms.length === 0) {
+          setError("El servidor devolvió 0 granjas. Crea al menos una granja con galpones y lotes en Catálogos.");
+        } else {
+          setError("No hay datos de catálogos disponibles para tu usuario.");
+        }
+      } else if (scoped.farms.length === 0 || scoped.sheds.length === 0 || scoped.lots.length === 0) {
+        setError(
+          `Tienes ${scoped.farms.length} granja(s), ${scoped.sheds.length} galpón(es) y ${scoped.lots.length} lote(s). Faltan galpones o lotes en tus granjas asignadas.`,
+        );
+      }
     } catch (err) {
       setError(err.message || "Error al descargar catálogos");
     } finally {
       setSyncingCatalogs(false);
     }
-  }, [accessToken, loadCatalogs]);
+  }, [accessToken, loadCatalogs, user]);
 
   useEffect(() => {
     let active = true;
@@ -240,8 +260,8 @@ export default function MortalidadPage() {
           size="sm"
           variant="outline"
           color="neutral"
-          loading={isSyncing || syncingCatalogs}
-          onClick={syncNow}
+          loading={syncingCatalogs}
+          onClick={tryDownloadCatalogs}
         >
           <RefreshCcw aria-hidden="true" className="size-3.5" />
           Descargar catálogos
