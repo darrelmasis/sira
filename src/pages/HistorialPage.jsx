@@ -460,7 +460,7 @@ export default function HistorialPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-nowrap items-center gap-1 overflow-x-auto pb-1 sm:flex-wrap sm:gap-2">
         <Button
           type="button"
           size="sm"
@@ -489,7 +489,7 @@ export default function HistorialPage() {
           Ayer
         </Button>
 
-        <div className="mx-1 h-6 w-px bg-zinc-200 dark:bg-zinc-700" />
+        <div className="mx-1 hidden h-6 w-px shrink-0 bg-zinc-200 dark:bg-zinc-700 sm:block" />
 
         <Button
           type="button"
@@ -508,7 +508,7 @@ export default function HistorialPage() {
           onClick={() => setModuleFilter("mortalidad")}
         >
           <Skull aria-hidden="true" className="size-4" />
-          Mortalidad
+          <span className="hidden sm:inline">Mortalidad</span>
         </Button>
         <Button
           type="button"
@@ -518,12 +518,12 @@ export default function HistorialPage() {
           onClick={() => setModuleFilter("produccion")}
         >
           <Egg aria-hidden="true" className="size-4" />
-          Producción
+          <span className="hidden sm:inline">Producción</span>
         </Button>
 
-        <div className="mx-1 h-6 w-px bg-zinc-200 dark:bg-zinc-700" />
+        <div className="mx-1 hidden h-6 w-px shrink-0 bg-zinc-200 dark:bg-zinc-700 sm:block" />
 
-        <div className="w-48 shrink-0">
+        <div className="w-40 shrink-0 sm:w-48">
           <DatePicker
             selectionMode="between"
             value={dateRange}
@@ -537,10 +537,10 @@ export default function HistorialPage() {
           />
         </div>
 
-        <div className="w-44 shrink-0">
+        <div className="w-36 shrink-0 sm:w-44">
           <Select
             value={farmFilter}
-            placeholder="Todas las granjas"
+            placeholder="Granja"
             onValueChange={(value) => setFarmFilter(value)}
             size="sm"
           >
@@ -551,7 +551,7 @@ export default function HistorialPage() {
           </Select>
         </div>
 
-        <span className="ml-auto text-sm text-zinc-500">
+        <span className="ml-auto hidden shrink-0 text-sm text-zinc-500 sm:inline">
           {filteredRecords.length} de {records.length} registro{records.length !== 1 ? "s" : ""}
         </span>
       </div>

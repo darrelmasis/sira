@@ -22,11 +22,11 @@ export default function AppShell() {
       <div className="mx-auto flex min-h-[calc(100vh-3.5rem)] max-w-7xl">
         {!isMobile && <Sidebar can={can} />}
 
-        <main className="min-w-0 flex-1 px-4 py-6">
-          <div className="mb-6">
-            <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        <main className="min-w-0 flex-1 px-3 py-4 sm:px-4 sm:py-6">
+          <div className="mb-4 sm:mb-6">
+            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{title}</h1>
             {subtitle && (
-              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+              <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400 sm:mt-1">
                 {subtitle}
               </p>
             )}

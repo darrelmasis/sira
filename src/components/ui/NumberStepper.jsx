@@ -45,7 +45,7 @@ export default function NumberStepper({
       </div>
       <Button
         type="button"
-        color="neutral"
+        color="brand"
         shape="square"
         size={size}
         aria-label="Disminuir"
@@ -56,7 +56,7 @@ export default function NumberStepper({
       </Button>
       <Button
         type="button"
-        color="neutral"
+        color="brand"
         shape="square"
         size={size}
         aria-label="Aumentar"

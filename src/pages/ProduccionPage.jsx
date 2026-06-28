@@ -238,7 +238,7 @@ export default function ProduccionPage() {
         />
       )}
 
-      <section className="grid gap-4 rounded-xl border border-zinc-200/80 p-5 dark:border-zinc-800 md:grid-cols-3">
+      <section className="grid gap-4 rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5 md:grid-cols-3">
         <FormControl controlId="granjaId" required>
           <Label>Granja</Label>
           {catalogs.farms.length > 0 ? (
@@ -304,7 +304,7 @@ export default function ProduccionPage() {
         </FormControl>
       </section>
 
-      <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 space-y-5">
+      <section className="rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5 space-y-5">
         <div className="flex items-center gap-2">
           <Egg aria-hidden="true" className="size-5 text-brand-500" />
           <h2 className="text-base font-semibold">Registro de producción</h2>
@@ -316,7 +316,7 @@ export default function ProduccionPage() {
             <div className="flex flex-col gap-2">
               {cats.map((c) => (
                 <div key={c.id} className="flex items-center gap-3 min-w-0">
-                  <span className="text-sm text-zinc-700 dark:text-zinc-300 w-36 shrink-0 leading-tight">{c.nombre}</span>
+                  <span className="text-sm text-zinc-700 dark:text-zinc-300 w-32 shrink-0 leading-tight sm:w-36">{c.nombre}</span>
                   <div className="flex-1 max-w-56">
                     <NumberStepper
                       value={registros[c.id]}
@@ -333,7 +333,7 @@ export default function ProduccionPage() {
       </section>
 
       <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200/80 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] dark:shadow-[0_-4px_12px_rgba(0,0,0,0.2)]">
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs sm:text-sm">
           <span className="font-semibold text-brand-600">I: {totales.incubable}</span>
           <span className="font-semibold text-sky-600">C: {totales.comercial}</span>
           <span className="font-semibold text-zinc-500">D: {totales.descarte}</span>
@@ -341,7 +341,7 @@ export default function ProduccionPage() {
         </div>
         <Button type="submit" color="brand" loading={saving} loadingText="Guardando..." className="w-full sm:w-auto">
           <Save aria-hidden="true" className="size-4" />
-          Guardar producción
+          Guardar
         </Button>
       </div>
     </form>

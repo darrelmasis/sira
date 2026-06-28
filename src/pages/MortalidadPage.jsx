@@ -205,7 +205,7 @@ export default function MortalidadPage() {
         />
       )}
 
-      <section className="grid gap-4 rounded-xl border border-zinc-200/80 p-5 dark:border-zinc-800 md:grid-cols-2">
+      <section className="grid gap-4 rounded-xl border border-zinc-200/80 p-4 dark:border-zinc-800 sm:p-5 md:grid-cols-2">
         <FormControl controlId="fecha" required>
           <Label>Fecha</Label>
           <DatePicker
