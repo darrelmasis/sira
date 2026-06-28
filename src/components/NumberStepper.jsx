@@ -5,7 +5,7 @@ export default function NumberStepper({
   value,
   onChange,
   min = 0,
-  max = 99999,
+  max = 999999,
   step = 1,
   disabled = false,
   id,
