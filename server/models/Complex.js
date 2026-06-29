@@ -1,23 +1,12 @@
 import mongoose from "mongoose";
 
-const ShedSchema = new mongoose.Schema(
+const ComplexSchema = new mongoose.Schema(
   {
     granjaId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Farm",
       required: true,
       index: true,
-    },
-    complejoId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Complex",
-      index: true,
-    },
-    numero: {
-      type: Number,
-      enum: [1, 2],
-      min: 1,
-      max: 2,
     },
     nombre: {
       type: String,
@@ -31,8 +20,10 @@ const ShedSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    collection: "galpones",
+    collection: "complejos",
   },
 );
 
-export default mongoose.models.Shed || mongoose.model("Shed", ShedSchema);
+ComplexSchema.index({ granjaId: 1, nombre: 1 }, { unique: true });
+
+export default mongoose.models.Complex || mongoose.model("Complex", ComplexSchema);

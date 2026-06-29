@@ -36,6 +36,15 @@ export function isDuplicateCode(items, code, excludeId = null) {
   });
 }
 
+export function isDuplicateComplex(items, { nombre, granjaId }, excludeId = null) {
+  const normalized = nombre.trim().toLowerCase();
+  const farmId = normalizeId(granjaId);
+  return items.some((item) => {
+    if (excludeId && normalizeId(item.id) === normalizeId(excludeId)) return false;
+    return normalizeId(item.granjaId) === farmId && item.nombre?.trim().toLowerCase() === normalized;
+  });
+}
+
 export function isDuplicateShed(items, { nombre, granjaId }, excludeId = null) {
   const normalized = nombre.trim().toLowerCase();
   const farmId = normalizeId(granjaId);

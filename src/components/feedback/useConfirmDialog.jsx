@@ -36,7 +36,7 @@ export function useConfirmDialog() {
         if (!options) return null;
 
         return (
-          <AppModal open onOpenChange={(open) => !open && close(false)} size="sm">
+          <AppModal open onOpenChange={(open) => !open && close(false)}>
             <AppModal.Content>
               <AppModal.Header>
                 <AppModal.Title>{options.title}</AppModal.Title>

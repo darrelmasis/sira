@@ -12,6 +12,7 @@ import {
 import { api } from "@/lib/api";
 import { useAuth } from "@/features/auth/AuthContext";
 import PageSection from "@/components/layout/PageSection";
+import { SiraLogo } from "@/assets/SiraLogo";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -48,10 +49,10 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 p-4 dark:bg-zinc-950">
-      <PageSection className="w-full max-w-sm">
+      <PageSection className="w-full max-w-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm p-6">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <EmptyStateTitle className="text-2xl">SIRA</EmptyStateTitle>
+          <div className="flex flex-col items-center gap-2">
+            <SiraLogo className="h-8" />
             <FormDescription>Sistema Integral para Registro Avícola</FormDescription>
           </div>
 

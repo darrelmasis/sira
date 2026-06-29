@@ -11,8 +11,6 @@ export default function CatalogCrudPanel({ config }) {
   const crud = useCatalogCrud(config);
   const { ConfirmDialogHost } = crud;
 
-  const modalSize = config.resource === "alojamientos" ? "xl" : "lg";
-
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
@@ -21,14 +19,25 @@ export default function CatalogCrudPanel({ config }) {
         </Button>
       </div>
 
-      {crud.prerequisiteEmpty ? (
+      {crud.loading ? (
+        <PageTable
+          columns={crud.columns}
+          data={[]}
+          rowKey={(row) => row.id}
+          loading
+          stickyHeader
+          color="neutral"
+          limit={25}
+          skeletonRows={crud.skeleton?.rows || 6}
+        />
+      ) : crud.prerequisiteEmpty ? (
         <ListEmptyState {...crud.prerequisiteEmpty} />
       ) : (
         <PageTable
           columns={crud.columns}
           data={crud.data}
           rowKey={(row) => row.id}
-          loading={crud.loading}
+          loading={false}
           stickyHeader
           color="neutral"
           limit={25}
@@ -46,7 +55,7 @@ export default function CatalogCrudPanel({ config }) {
         />
       )}
 
-      <AppModal open={crud.modalOpen} onOpenChange={crud.setModalOpen} size={modalSize}>
+      <AppModal open={crud.modalOpen} onOpenChange={crud.setModalOpen}>
         <AppModal.Content>
           <AppModal.Form onSubmit={crud.handleSubmit}>
             <AppModal.Header>

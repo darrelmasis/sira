@@ -21,7 +21,7 @@ export const PERMISSION_CATALOG = {
   "roles.manage": "Configurar permisos por rol",
   "sync.manual": "Sincronizar manualmente",
   "settings.view": "Ver ajustes",
-  "transfers.create": "Realizar traslados y capitalizaciones",
+  "transfers.create": "Realizar capitalizaciones",
   "inventory.view": "Ver inventario de aves",
 };
 

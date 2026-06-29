@@ -1,13 +1,21 @@
 import { NavLink } from "react-router-dom";
 import { cn } from "quickit-ui";
-import { Database, History, LayoutGrid, Settings, Skull, Users, ClipboardList, ArrowRightLeft } from "lucide-react";
+import { ClipboardList, Database, Egg, FileSpreadsheet, History, Layers, LayoutGrid, Settings, Skull, Users } from "lucide-react";
 
-export const mainNav = [
+export const primaryNav = [
   { to: "/", label: "Inicio", icon: LayoutGrid, end: true },
   { to: "/inventario", label: "Inventario", icon: ClipboardList, permission: "inventory.view" },
-  { to: "/traslados", label: "Traslados", icon: ArrowRightLeft, permission: "transfers.create" },
+];
+
+export const captureNav = [
   { to: "/mortalidad", label: "Mortalidad", icon: Skull },
+  { to: "/produccion", label: "Producción", icon: Egg },
+  { to: "/capitalizacion", label: "Capitalización", icon: Layers, permission: "transfers.create" },
+];
+
+export const queriesNav = [
   { to: "/historial", label: "Historial", icon: History },
+  { to: "/reportes", label: "Reportes", icon: FileSpreadsheet },
 ];
 
 export const adminNav = [
@@ -19,10 +27,11 @@ export const adminNav = [
 export const pageMeta = {
   "/": { title: "Inicio", subtitle: "Accede rápidamente a las funcionalidades más importantes" },
   "/inventario": { title: "Inventario", subtitle: "Existencias estimadas de aves en tiempo real" },
-  "/traslados": { title: "Traslados", subtitle: "Movimiento y capitalización de aves" },
   "/mortalidad": { title: "Mortalidad" },
   "/produccion": { title: "Producción" },
+  "/capitalizacion": { title: "Capitalización", subtitle: "Paso de levante a postura" },
   "/historial": { title: "Historial" },
+  "/reportes": { title: "Reportes", subtitle: "Exporta datos de mortalidad y producción a CSV o Excel" },
   "/catalogos": { title: "Catálogos" },
   "/usuarios": { title: "Usuarios" },
   "/cuenta": { title: "Mi cuenta" },
@@ -47,7 +56,7 @@ export function isNavItemVisible(item, can) {
 
 export function getPageMeta(pathname) {
   if (pageMeta[pathname]) return pageMeta[pathname];
-  const all = [...mainNav, ...adminNav];
+  const all = [...primaryNav, ...captureNav, ...queriesNav, ...adminNav];
   const current = all.find((item) =>
     item.end ? pathname === item.to : pathname.startsWith(item.to),
   );
@@ -81,7 +90,9 @@ export function NavSection({ title, items, can }) {
 export function SidebarNav({ can, onNavigate }) {
   return (
     <nav className="space-y-1" onClick={onNavigate}>
-      <NavSection title="Principal" items={mainNav} can={can} />
+      <NavSection title="Principal" items={primaryNav} can={can} />
+      <NavSection title="Captura de datos" items={captureNav} can={can} />
+      <NavSection title="Consultas" items={queriesNav} can={can} />
       <NavSection title="Administración" items={adminNav} can={can} />
     </nav>
   );

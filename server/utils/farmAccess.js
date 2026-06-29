@@ -48,6 +48,10 @@ export async function buildCatalogFilter(resource, user, Lot) {
     return { granjaId: scope };
   }
 
+  if (resource === "complejos") {
+    return { granjaId: scope };
+  }
+
   if (resource === "alojamientos") {
     const lotIds = await Lot.find({ granjaId: scope }).distinct("_id");
     if (lotIds.length === 0) return { _id: null };

@@ -11,26 +11,39 @@ import AppSettingsPage from "@/pages/AppSettingsPage";
 import CatalogsPage from "@/pages/CatalogsPage";
 import UsersPage from "@/pages/UsersPage";
 import InventarioPage from "@/pages/InventarioPage";
-import TrasladosPage from "@/pages/TrasladosPage";
+import CapitalizacionPage from "@/pages/CapitalizacionPage";
+import ReportsPage from "@/pages/ReportsPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import ErrorPage from "@/pages/ErrorPage";
 import AppShell from "@/components/layout/AppShell";
-import { ProtectedRoute, PermissionRoute } from "@/app/guards";
+import { ProtectedRoute, PermissionRoute, GuestRoute } from "@/app/guards";
 
 export const router = createBrowserRouter([
   {
     path: "/login",
-    element: <LoginPage />,
+    element: (
+      <GuestRoute>
+        <LoginPage />
+      </GuestRoute>
+    ),
     errorElement: <ErrorPage />,
   },
   {
     path: "/forgot-password",
-    element: <ForgotPasswordPage />,
+    element: (
+      <GuestRoute>
+        <ForgotPasswordPage />
+      </GuestRoute>
+    ),
     errorElement: <ErrorPage />,
   },
   {
     path: "/reset-password",
-    element: <ResetPasswordPage />,
+    element: (
+      <GuestRoute>
+        <ResetPasswordPage />
+      </GuestRoute>
+    ),
     errorElement: <ErrorPage />,
   },
   {
@@ -46,6 +59,7 @@ export const router = createBrowserRouter([
       { path: "mortalidad", element: <MortalidadPage /> },
       { path: "produccion", element: <ProduccionPage /> },
       { path: "historial", element: <HistorialPage /> },
+      { path: "reportes", element: <ReportsPage /> },
       { path: "cuenta", element: <AccountPage /> },
       {
         path: "inventario",
@@ -56,13 +70,14 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: "traslados",
+        path: "capitalizacion",
         element: (
           <PermissionRoute permission="transfers.create">
-            <TrasladosPage />
+            <CapitalizacionPage />
           </PermissionRoute>
         ),
       },
+      { path: "traslados", element: <Navigate to="/capitalizacion" replace /> },
       {
         path: "sistema",
         element: (

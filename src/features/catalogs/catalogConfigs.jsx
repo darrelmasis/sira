@@ -1,15 +1,15 @@
-import { FormControl, Input, Label, Select, DatePicker } from "quickit-ui";
-import { Building2, Home, Layers, MapPin } from "lucide-react";
+import { FormControl, FormDescription, Input, Label, Select, DatePicker } from "quickit-ui";
+import { Building2, Layers, MapPin } from "lucide-react";
 import { api } from "@/lib/api";
 import {
   isDuplicateCode,
+  isDuplicateComplex,
   isDuplicateName,
   isDuplicatePlacement,
-  isDuplicateShed,
   labelForId,
   normalizeId,
 } from "@/lib/catalog-utils";
-import { formatDateInput, formatDateShort, parseDateInput, todayInput } from "@/lib/datetime";
+import { formatDateInput, formatDateShort, parseDateInput, todayInput, getAgeWeeks } from "@/lib/datetime";
 import RowActionsDropdown from "@/components/ui/RowActionsDropdown";
 import PlacementFormFields from "./PlacementFormFields";
 
@@ -40,14 +40,8 @@ export const farmCatalogConfig = {
   },
   toPayload: (form) => ({ ...form, nombre: form.nombre.trim() }),
   buildColumns: ({ openEdit, handleDelete }) => [
-    { key: "nombre", header: "Nombre", sortable: true, render: (row) => row.nombre },
-    { key: "tipo", header: "Tipo", sortable: true, render: (row) => <span className="capitalize">{row.tipo}</span> },
-    {
-      key: "createdAt",
-      header: "Fecha registro",
-      sortable: true,
-      render: (row) => row.createdAt ? formatDateShort(row.createdAt) : "—",
-    },
+    { key: "nombre", header: "Nombre", render: (row) => row.nombre },
+    { key: "tipo", header: "Tipo", render: (row) => <span className="capitalize">{row.tipo}</span> },
     {
       key: "actions",
       header: "",
@@ -60,7 +54,7 @@ export const farmCatalogConfig = {
   getEmpty: () => ({
     icon: Building2,
     title: "Sin granjas",
-    description: "Crea la primera granja para empezar a configurar galpones y lotes.",
+    description: "Crea la primera granja para empezar a configurar complejos y lotes.",
     actionsLabel: "Crear granja",
   }),
   renderForm: ({ form, setForm }) => (
@@ -84,51 +78,54 @@ export const farmCatalogConfig = {
   ),
 };
 
-export const shedCatalogConfig = {
-  resource: "galpones",
-  loadError: "Error al cargar galpones",
-  createLabel: "Nuevo galpón",
-  createSuccess: "Galpón creado",
-  updateSuccess: "Galpón actualizado",
-  deleteTitle: "Eliminar galpón",
-  deleteDescription: "Esta acción no se puede deshacer.",
-  deleteSuccess: "Galpón eliminado",
-  modalTitles: { create: "Nuevo galpón", edit: "Editar galpón" },
-  skeleton: { columns: 2, rows: 4 },
+export const complexCatalogConfig = {
+  resource: "complejos",
+  loadError: "Error al cargar complejos",
+  createLabel: "Nuevo complejo",
+  createSuccess: "Complejo creado (2 galpones generados)",
+  updateSuccess: "Complejo actualizado",
+  deleteTitle: "Eliminar complejo",
+  deleteDescription: "Se eliminarán los dos galpones del complejo si no tienen alojamientos.",
+  deleteSuccess: "Complejo eliminado",
+  modalTitles: { create: "Nuevo complejo", edit: "Editar complejo" },
+  skeleton: { columns: 4, rows: 4 },
   initialForm: (meta) => ({ nombre: "", granjaId: meta.farms?.[0]?.id || "" }),
   toForm: (row) => ({ nombre: row.nombre, granjaId: row.granjaId }),
   load: async ({ accessToken, setData, setMeta }) => {
-    const [shedsRes, farmsRes] = await Promise.all([
-      api("galpones", { method: "GET", accessToken }),
+    const [complexesRes, farmsRes] = await Promise.all([
+      api("complejos", { method: "GET", accessToken }),
       api("granjas", { method: "GET", accessToken }),
     ]);
-    if (shedsRes.success) setData(shedsRes.data);
+    if (complexesRes.success) setData(complexesRes.data);
     if (farmsRes.success) setMeta({ farms: farmsRes.data });
   },
   canCreate: (meta) => (meta.farms?.length ?? 0) > 0,
   validate: (form, data, editing) => {
     const nombre = form.nombre.trim();
-    if (!nombre) return "El nombre es obligatorio";
-    if (!form.granjaId) return "Selecciona una granja";
-    if (isDuplicateShed(data, { nombre, granjaId: form.granjaId }, editing?.id)) {
-      return "Ya existe ese galpón en la granja";
+    if (!nombre) return "El nombre del complejo es obligatorio";
+    if (!editing && !form.granjaId) return "Selecciona una granja";
+    if (isDuplicateComplex(data, { nombre, granjaId: form.granjaId }, editing?.id)) {
+      return "Ya existe ese complejo en la granja";
     }
     return "";
   },
   toPayload: (form) => ({ ...form, nombre: form.nombre.trim() }),
   buildColumns: ({ meta, openEdit, handleDelete }) => [
-    { key: "nombre", header: "Nombre", sortable: true, render: (row) => row.nombre },
+    { key: "nombre", header: "Complejo", render: (row) => row.nombre },
     {
       key: "granja",
       header: "Granja",
-      sortable: true,
       render: (row) => labelForId(meta.farms, row.granjaId, "nombre", "Sin granja"),
     },
     {
-      key: "createdAt",
-      header: "Fecha registro",
-      sortable: true,
-      render: (row) => row.createdAt ? formatDateShort(row.createdAt) : "—",
+      key: "galpon1",
+      header: "Galpón 1",
+      render: (row) => row.galpones?.find((g) => g.numero === 1)?.nombre || "—",
+    },
+    {
+      key: "galpon2",
+      header: "Galpón 2",
+      render: (row) => row.galpones?.find((g) => g.numero === 2)?.nombre || "—",
     },
     {
       key: "actions",
@@ -142,39 +139,56 @@ export const shedCatalogConfig = {
   getPrerequisiteEmpty: (meta) =>
     (meta.farms?.length ?? 0) === 0
       ? {
-          icon: Home,
+          icon: Layers,
           title: "Primero crea una granja",
-          description: "Necesitas al menos una granja antes de registrar galpones.",
+          description: "Necesitas al menos una granja antes de registrar complejos.",
         }
       : null,
   getEmpty: () => ({
-    icon: Home,
-    title: "Sin galpones",
-    description: "Agrega galpones a tus granjas.",
-    actionsLabel: "Crear galpón",
+    icon: Layers,
+    title: "Sin complejos",
+    description: "Registra un complejo y se crearán automáticamente sus dos galpones.",
+    actionsLabel: "Crear complejo",
   }),
-  renderForm: ({ form, setForm, meta }) => (
-    <>
-      <FormControl required>
-        <Label>Nombre</Label>
-        <Input
-          value={form.nombre}
-          placeholder="Ej. Galpón 01"
-          onChange={(e) => setForm({ ...form, nombre: e.target.value })}
-        />
-      </FormControl>
-      <FormControl required>
-        <Label>Granja</Label>
-        <Select value={form.granjaId} onValueChange={(val) => setForm({ ...form, granjaId: val })}>
-          {(meta.farms || []).map((farm) => (
-            <option key={farm.id} value={farm.id}>
-              {farm.nombre}
-            </option>
-          ))}
-        </Select>
-      </FormControl>
-    </>
-  ),
+  renderForm: ({ form, setForm, meta, editing }) => {
+    const previewName = form.nombre.trim();
+    return (
+      <>
+        <FormControl required>
+          <Label>Nombre del complejo</Label>
+          <Input
+            value={form.nombre}
+            placeholder="Ej. Tempisque"
+            onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+          />
+          {!editing && previewName ? (
+            <FormDescription>
+              Se crearán los galpones <strong>{previewName} 1</strong> y <strong>{previewName} 2</strong>.
+            </FormDescription>
+          ) : null}
+          {editing ? (
+            <FormDescription>
+              Al cambiar el nombre se actualizarán también los nombres de los galpones 1 y 2.
+            </FormDescription>
+          ) : null}
+        </FormControl>
+        <FormControl required={!editing}>
+          <Label>Granja</Label>
+          <Select
+            value={form.granjaId}
+            disabled={Boolean(editing)}
+            onValueChange={(val) => setForm({ ...form, granjaId: val })}
+          >
+            {(meta.farms || []).map((farm) => (
+              <option key={farm.id} value={farm.id}>
+                {farm.nombre}
+              </option>
+            ))}
+          </Select>
+        </FormControl>
+      </>
+    );
+  },
 };
 
 const lotInitialForm = {
@@ -182,7 +196,6 @@ const lotInitialForm = {
   granjaId: "",
   raza: "COBB",
   sexo: "mixto",
-  estado: "activo",
   hembras: 0,
   machos: 0,
   fechaAlojamiento: todayInput(),
@@ -198,17 +211,15 @@ export const lotCatalogConfig = {
   deleteDescription: "¿Seguro que deseas eliminar este lote?",
   deleteSuccess: "Lote eliminado",
   modalTitles: { create: "Nuevo lote", edit: "Editar lote" },
-  skeleton: { columns: 6, rows: 5 },
+  skeleton: { columns: 7, rows: 5 },
   initialForm: (meta) => ({ ...lotInitialForm, granjaId: meta.farms?.[0]?.id || "" }),
   toForm: (row) => ({
     codigo: row.codigo,
     granjaId: row.granjaId,
     raza: row.raza,
     sexo: row.sexo,
-    estado: row.estado,
     hembras: row.hembras,
     machos: row.machos,
-    etapa: row.etapa || "levante",
     fechaAlojamiento: row.fechaAlojamiento ? formatDateInput(row.fechaAlojamiento) : todayInput(),
   }),
   load: async ({ accessToken, setData, setMeta }) => {
@@ -231,31 +242,38 @@ export const lotCatalogConfig = {
   },
   toPayload: (form) => ({ ...form, codigo: form.codigo.trim() }),
   buildColumns: ({ meta, openEdit, handleDelete }) => [
-    { key: "codigo", header: "Código", sortable: true, render: (row) => row.codigo },
+    { key: "codigo", header: "Código", render: (row) => row.codigo },
     {
       key: "fechaAlojamiento",
       header: "Fecha aloj.",
-      sortable: true,
       render: (row) => (row.fechaAlojamiento ? formatDateShort(row.fechaAlojamiento) : "—"),
     },
     {
       key: "granja",
       header: "Granja",
-      sortable: true,
       render: (row) => labelForId(meta.farms, row.granjaId, "nombre", "Sin granja"),
     },
-    { key: "raza", header: "Raza", sortable: true, render: (row) => row.raza },
-    { key: "sexo", header: "Sexo", sortable: true, render: (row) => <span className="capitalize">{row.sexo}</span> },
-    { key: "etapa", header: "Etapa", sortable: true, render: (row) => <span className="capitalize font-semibold text-brand-600">{row.etapa || "levante"}</span> },
-    { key: "estado", header: "Estado", sortable: true, render: (row) => <span className="capitalize">{row.estado}</span> },
-    { key: "hembras", header: "Hembras", sortable: true, align: "right", render: (row) => row.hembras },
-    { key: "machos", header: "Machos", sortable: true, align: "right", render: (row) => row.machos },
+    { key: "raza", header: "Raza", render: (row) => row.raza },
+    { key: "sexo", header: "Sexo", render: (row) => <span className="capitalize">{row.sexo}</span> },
+    { key: "etapa", header: "Etapa", render: (row) => <span className="capitalize font-semibold text-brand-600">{row.etapa || "levante"}</span> },
     {
-      key: "createdAt",
-      header: "Fecha registro",
-      sortable: true,
-      render: (row) => row.createdAt ? formatDateShort(row.createdAt) : "—",
+      key: "edad",
+      header: "Edad",
+      align: "right",
+      render: (row) => {
+        const weeks =
+          row.edadSemanas ??
+          (row.fechaAlojamiento ? getAgeWeeks(row.fechaAlojamiento) : null);
+        return (
+          <span className="tabular-nums font-medium">
+            {weeks != null ? `${weeks} sem` : "—"}
+          </span>
+        );
+      },
     },
+    { key: "estado", header: "Estado", render: (row) => <span className="capitalize">{row.estado}</span> },
+    { key: "hembras", header: "Hembras", align: "right", render: (row) => row.hembras },
+    { key: "machos", header: "Machos", align: "right", render: (row) => row.machos },
     {
       key: "actions",
       header: "",
@@ -315,13 +333,6 @@ export const lotCatalogConfig = {
           <option value="mixto">Mixto</option>
         </Select>
       </FormControl>
-      <FormControl required>
-        <Label>Etapa</Label>
-        <Select value={form.etapa} onValueChange={(val) => setForm({ ...form, etapa: val })}>
-          <option value="levante">Levante</option>
-          <option value="postura">Postura</option>
-        </Select>
-      </FormControl>
       <FormControl required className="col-span-2">
         <Label>Fecha de alojamiento del lote</Label>
         <DatePicker
@@ -348,13 +359,6 @@ export const lotCatalogConfig = {
           onChange={(e) => setForm({ ...form, machos: Number(e.target.value) })}
           onFocus={(e) => e.target.select()}
         />
-      </FormControl>
-      <FormControl required className="col-span-2">
-        <Label>Estado</Label>
-        <Select value={form.estado} onValueChange={(val) => setForm({ ...form, estado: val })}>
-          <option value="activo">Activo</option>
-          <option value="cerrado">Cerrado</option>
-        </Select>
       </FormControl>
     </div>
   ),
@@ -437,39 +441,34 @@ export const placementCatalogConfig = {
     {
       key: "fechaAlojamiento",
       header: "Fecha",
-      sortable: true,
       render: (row) => formatDateShort(row.fechaAlojamiento),
     },
     {
       key: "lote",
       header: "Lote",
-      sortable: true,
       render: (row) => labelForId(meta.lots, row.loteId, "codigo", "Sin lote"),
     },
     {
       key: "galpon",
       header: "Galpón",
-      sortable: true,
       render: (row) => labelForId(meta.sheds, row.galponId, "nombre", "Sin galpón"),
     },
     {
       key: "tipo",
       header: "Fase",
-      sortable: true,
       render: (row) => <span className="capitalize font-medium">{row.tipo || "levante"}</span>
     },
     {
       key: "estado",
       header: "Estado",
-      sortable: true,
       render: (row) => (
         <span className={`capitalize font-semibold ${row.estado === "cerrado" ? "text-zinc-400" : "text-emerald-600"}`}>
           {row.estado || "activo"}
         </span>
       )
     },
-    { key: "hembras", header: "Hembras", sortable: true, align: "right", render: (row) => row.hembras },
-    { key: "machos", header: "Machos", sortable: true, align: "right", render: (row) => row.machos },
+    { key: "hembras", header: "Hembras", align: "right", render: (row) => row.hembras },
+    { key: "machos", header: "Machos", align: "right", render: (row) => row.machos },
     {
       key: "actions",
       header: "",
@@ -506,7 +505,7 @@ export const placementCatalogConfig = {
 
 export const catalogConfigs = {
   granjas: farmCatalogConfig,
-  galpones: shedCatalogConfig,
+  complejos: complexCatalogConfig,
   lotes: lotCatalogConfig,
   alojamientos: placementCatalogConfig,
 };

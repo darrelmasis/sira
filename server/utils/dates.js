@@ -1,4 +1,5 @@
 import dayjs from "dayjs";
+import { POSTURA_MIN_WEEKS } from "../constants/etapas.js";
 
 const DATE_ONLY_RE = /^(\d{4}-\d{2}-\d{2})/;
 
@@ -44,5 +45,5 @@ export function getAgeWeeks(fechaAlojamiento, atDate = new Date()) {
 }
 
 export function getEtapa(weeks) {
-  return weeks < 18 ? "levante" : "postura";
+  return weeks < POSTURA_MIN_WEEKS ? "levante" : "postura";
 }

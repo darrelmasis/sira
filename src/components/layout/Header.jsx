@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Badge, Button, Drawer, Dropdown, Link, useBreakpoint } from "quickit-ui";
+import {
+  Badge,
+  Button,
+  Drawer,
+  Dropdown,
+  Link,
+  useBreakpoint,
+  Show,
+} from "quickit-ui";
 import { LogOut, Menu, RefreshCcw, Settings, User } from "lucide-react";
 import ConnectionBadge from "@/components/feedback/ConnectionBadge";
 import UserAvatar from "@/components/UserAvatar";
@@ -26,9 +34,19 @@ export default function Header({ user, can, roleLabel, logout, summary }) {
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4">
         <div className="flex items-center gap-2 lg:w-56">
           {isMobile && (
-            <Drawer placement="left" open={drawerOpen} onOpenChange={setDrawerOpen}>
+            <Drawer
+              placement="left"
+              open={drawerOpen}
+              onOpenChange={setDrawerOpen}
+            >
               <Drawer.Trigger asChild>
-                <Button type="button" variant="ghost" color="neutral" shape="square" aria-label="Abrir menú">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  color="neutral"
+                  shape="square"
+                  aria-label="Abrir menú"
+                >
                   <Menu aria-hidden="true" className="size-5" />
                 </Button>
               </Drawer.Trigger>
@@ -56,11 +74,18 @@ export default function Header({ user, can, roleLabel, logout, summary }) {
           <ConnectionBadge />
           <Dropdown closeOnScroll>
             <Dropdown.Trigger asChild>
-              <Button type="button" variant="ghost" color="neutral" shape={isMobile ? "square" : "rounded"} className="gap-2 pl-1.5 pr-2">
+              <Button
+                type="button"
+                variant="ghost"
+                color="neutral"
+                shape={isMobile ? "square" : "rounded"}
+              >
                 <UserAvatar user={user} size="sm" />
-                <span className="hidden max-w-28 truncate text-sm sm:inline">
-                  {user?.nombre || user?.username}
-                </span>
+                <Show when={!isMobile}>
+                  <span className="hidden max-w-28 truncate text-sm sm:inline">
+                    {user?.nombre || user?.username}
+                  </span>
+                </Show>
               </Button>
             </Dropdown.Trigger>
             <Dropdown.Content align="end" className="min-w-56">
@@ -75,9 +100,13 @@ export default function Header({ user, can, roleLabel, logout, summary }) {
                       @{user?.username}
                     </div>
                   </div>
-                <Badge color="neutral" variant="soft" className="mt-2 uppercase">
-                  {roleLabel}
-                </Badge>
+                  <Badge
+                    color="neutral"
+                    variant="soft"
+                    className="mt-2 uppercase"
+                  >
+                    {roleLabel}
+                  </Badge>
                 </div>
               </div>
               <Dropdown.Item onClick={() => navigate("/cuenta")}>

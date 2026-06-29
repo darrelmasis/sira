@@ -374,9 +374,12 @@ export default function MortalidadPage() {
               ) : (
                 <Input
                   id="galponId"
-                  placeholder={values.loteId ? "Sin galpones con alojamiento activo" : "Selecciona un lote primero"}
-                  value=""
-                  disabled
+                  placeholder={!values.loteId ? "Selecciona un lote primero" : "ID de galpón"}
+                  value={values.galponId}
+                  onChange={(event) =>
+                    updateField("galponId", event.target.value)
+                  }
+                  disabled={!values.loteId && filteredSheds.length === 0}
                 />
               )}
               <FormMessage>{fieldErrors.galponId}</FormMessage>

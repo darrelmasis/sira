@@ -16,13 +16,20 @@ const modalShellClass = "flex min-h-0 flex-1 flex-col overflow-hidden";
 export default function AppModal({
   open,
   onOpenChange,
-  size = "lg",
+  size,
   maxWidth,
   children,
   ...props
 }) {
+  const resolvedMaxWidth = maxWidth ?? (size ? MODAL_SIZES[size] : undefined);
+
   return (
-    <Modal open={open} onOpenChange={onOpenChange} maxWidth={maxWidth ?? MODAL_SIZES[size]} {...props}>
+    <Modal
+      open={open}
+      onOpenChange={onOpenChange}
+      {...(resolvedMaxWidth ? { maxWidth: resolvedMaxWidth } : {})}
+      {...props}
+    >
       {children}
     </Modal>
   );

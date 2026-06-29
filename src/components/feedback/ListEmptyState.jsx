@@ -10,7 +10,7 @@ export default function ListEmptyState({ icon: Icon, title, description, actions
       )}
       <EmptyState.Title>{title}</EmptyState.Title>
       {description && <EmptyState.Description>{description}</EmptyState.Description>}
-      {actions && <EmptyState.Actions>{actions}</EmptyState.Actions>}
+      {actions && <EmptyState.Actions><div className="w-full text-center">{actions}</div></EmptyState.Actions>}
     </EmptyState>
   );
 }

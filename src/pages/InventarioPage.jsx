@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Alert, Button, Badge, FormControl, Label, Select, toast } from "quickit-ui";
-import { MapPin, ArrowRightLeft, ShieldAlert, RotateCw } from "lucide-react";
+import { MapPin, ShieldAlert, RotateCw } from "lucide-react";
 import { usePermissions } from "@/features/auth/permissions";
 import { useFarmAccess } from "@/features/auth/farmAccess";
 import { getLocalCatalogs } from "@/features/catalogs/catalogStore";
@@ -134,17 +134,7 @@ export default function InventarioPage() {
           const isCapitalizable = isLevante && row.edadSemanas >= CAPITALIZATION_MIN_WEEKS;
 
           return (
-            <div className="flex items-center justify-end gap-2">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() =>
-                  navigate(`/traslados?tipo=traslado&loteId=${row.lote?.id}&origenId=${row.galpon?.id}`)
-                }
-              >
-                <ArrowRightLeft className="mr-1 size-3.5" />
-                Trasladar
-              </Button>
+            <div className="flex items-center justify-end">
               {isLevante && (
                 <Button
                   size="sm"
@@ -157,7 +147,7 @@ export default function InventarioPage() {
                       : `Requiere ${CAPITALIZATION_MIN_WEEKS} semanas de edad (actual: ${row.edadSemanas})`
                   }
                   onClick={() =>
-                    navigate(`/traslados?tipo=capitalizacion&loteId=${row.lote?.id}&origenId=${row.galpon?.id}`)
+                    navigate(`/capitalizacion?loteId=${row.lote?.id}&origenId=${row.galpon?.id}`)
                   }
                 >
                   Capitalizar
@@ -226,10 +216,9 @@ export default function InventarioPage() {
           {can("transfers.create") && (
             <Button
               color="brand"
-              onClick={() => navigate("/traslados")}
+              onClick={() => navigate("/capitalizacion")}
             >
-              <ArrowRightLeft className="mr-2 size-4" />
-              Nuevo Traslado
+              Capitalizar lote
             </Button>
           )}
         </div>

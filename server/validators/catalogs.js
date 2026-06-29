@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Farm from "../models/Farm.js";
 import Shed from "../models/Shed.js";
+import Complex from "../models/Complex.js";
 import Lot from "../models/Lot.js";
 import Placement from "../models/Placement.js";
 
@@ -26,6 +27,28 @@ export async function validateFarmPayload(body, excludeId) {
   if (!["engorde", "reproductora"].includes(body?.tipo)) {
     return "Tipo de granja inválido.";
   }
+
+  return "";
+}
+
+export async function validateComplexPayload(body, excludeId) {
+  const nombre = body?.nombre?.trim();
+  if (!nombre) return "El nombre del complejo es obligatorio.";
+  if (!mongoose.Types.ObjectId.isValid(body?.granjaId)) return "Selecciona una granja válida.";
+
+  const filter = {
+    granjaId: body.granjaId,
+    nombre: { $regex: new RegExp(`^${escapeRegex(nombre)}$`, "i") },
+  };
+  if (excludeId && mongoose.Types.ObjectId.isValid(excludeId)) {
+    filter._id = { $ne: excludeId };
+  }
+
+  const exists = await Complex.findOne(filter).lean();
+  if (exists) return "Ya existe un complejo con ese nombre en la granja seleccionada.";
+
+  const farm = await Farm.findById(body.granjaId).lean();
+  if (!farm) return "La granja seleccionada no existe.";
 
   return "";
 }

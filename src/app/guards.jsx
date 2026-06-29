@@ -11,8 +11,21 @@ export function ProtectedRoute({ children }) {
   return children;
 }
 
+export function GuestRoute({ children }) {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) return <AuthLoadingShell />;
+  if (isAuthenticated) return <Navigate to="/" replace />;
+  return children;
+}
+
 export function PermissionRoute({ permission, anyPermission, children }) {
+  const { isAuthenticated, isLoading } = useAuth();
   const { can } = usePermissions();
+
+  if (isLoading) return <AuthLoadingShell />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+
   const allowed = anyPermission?.length
     ? anyPermission.some((item) => can(item))
     : can(permission);

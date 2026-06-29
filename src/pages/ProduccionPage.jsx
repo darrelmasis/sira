@@ -13,6 +13,7 @@ import { useSync } from "@/features/sync/SyncProvider";
 import { formatDateInput, parseDateInput, todayInput, getAgeWeeks } from "@/lib/datetime";
 import { normalizeId } from "@/lib/catalog-utils";
 import { EGG_CATEGORIES, getCategoriasPorClasificacion } from "@/lib/egg-categories";
+import { ETAPA_POSTURA } from "@/lib/constants";
 
 function buildInitialRegistros() {
   const map = {};
@@ -81,7 +82,11 @@ export default function ProduccionPage() {
   }, [catalogs.sheds, catalogs.placements, values.loteId]);
 
   const filteredLots = useMemo(
-    () => catalogs.lots.filter((lot) => !values.granjaId || normalizeId(lot.granjaId) === normalizeId(values.granjaId)),
+    () => catalogs.lots.filter(
+      (lot) =>
+        lot.etapa === ETAPA_POSTURA &&
+        (!values.granjaId || normalizeId(lot.granjaId) === normalizeId(values.granjaId)),
+    ),
     [catalogs.lots, values.granjaId],
   );
 
@@ -249,6 +254,16 @@ export default function ProduccionPage() {
         color="warning"
         title="Catálogos incompletos"
         description="Necesitas granjas, galpones y lotes cargados. Ve a Configuración del sistema → Actualizar catálogos o pide a un administrador que complete los catálogos."
+      />
+    );
+  }
+
+  if (catalogs.lots.every((lot) => lot.etapa !== ETAPA_POSTURA)) {
+    return (
+      <Alert
+        color="info"
+        title="Sin lotes en postura"
+        description="No hay lotes en etapa de postura disponibles. La producción de huevos solo puede registrarse en lotes que hayan sido capitalizados."
       />
     );
   }

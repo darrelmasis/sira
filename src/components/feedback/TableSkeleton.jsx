@@ -23,7 +23,7 @@ export default function TableSkeleton({ columns = [], rows = 5 }) {
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y bg-white dark:bg-zinc-950">
+        <tbody className="divide-y divide-zinc-200 bg-white dark:divide-zinc-800 dark:bg-zinc-950">
           {Array.from({ length: rows }).map((_, rowIndex) => (
             <tr key={`sk-${rowIndex}`} className="group">
               {columns.map((col, colIndex) => (

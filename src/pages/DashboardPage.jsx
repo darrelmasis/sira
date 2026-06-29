@@ -1,4 +1,4 @@
-import { Database, Egg, History, Settings, Skull, User, Users, ClipboardList, ArrowRightLeft } from "lucide-react";
+import { Database, Egg, History, Settings, Skull, User, Users, ClipboardList, Layers } from "lucide-react";
 import QuickAccessCard from "@/components/layout/QuickAccessCard";
 import { usePermissions } from "@/features/auth/permissions";
 
@@ -7,7 +7,7 @@ export default function DashboardPage() {
 
   const showAdmin = can("users.manage") || can("roles.manage") || can("catalogs.manage") || can("settings.view");
 
-  const showTraslados = can("transfers.create");
+  const showCapitalizacion = can("transfers.create");
   const showInventario = can("inventory.view");
 
   return (
@@ -18,7 +18,7 @@ export default function DashboardPage() {
           Registro
           <span className="h-px flex-1 bg-brand-200 dark:bg-brand-900" />
         </h2>
-        <div className={`grid gap-3 sm:grid-cols-${showTraslados ? "3" : "2"}`}>
+        <div className={`grid gap-3 sm:grid-cols-${showCapitalizacion ? "3" : "2"}`}>
           <QuickAccessCard
             to="/mortalidad"
             icon={Skull}
@@ -31,12 +31,12 @@ export default function DashboardPage() {
             label="Producción"
             description="Ingresa el volumen de huevo recolectado por clasificación."
           />
-          {showTraslados && (
+          {showCapitalizacion && (
             <QuickAccessCard
-              to="/traslados"
-              icon={ArrowRightLeft}
-              label="Traslados"
-              description="Registra movimientos de aves y capitalizaciones."
+              to="/capitalizacion"
+              icon={Layers}
+              label="Capitalización"
+              description="Pasa lotes de levante a postura en su galpón de producción."
             />
           )}
         </div>
