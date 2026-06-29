@@ -491,7 +491,7 @@ export default function HistorialPage() {
             <Tooltip content={`${name} · ${fecha}`}>
               <div className="flex items-center justify-center">
                 <UserAvatar
-                  user={isCurrentUser ? { ...actor, avatarId: currentUser.avatarId } : actor}
+                  user={isCurrentUser ? { ...actor, avatarId: currentUser.avatarId, avatarColorIndex: currentUser.avatarColorIndex } : actor}
                   nombre={name}
                   size="sm"
                 />
@@ -689,7 +689,7 @@ export default function HistorialPage() {
                     <Label>Modificado Por</Label>
                     <div className="flex items-center gap-2 mt-1">
                       <UserAvatar
-                        user={isCurrentUser ? { ...actor, avatarId: currentUser.avatarId } : actor}
+                  user={isCurrentUser ? { ...actor, avatarId: currentUser.avatarId, avatarColorIndex: currentUser.avatarColorIndex } : actor}
                         nombre={actorName}
                         size="sm"
                       />
