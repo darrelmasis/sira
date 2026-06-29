@@ -10,9 +10,10 @@ import {
   Textarea,
   DatePicker,
   FormDescription,
+  Tooltip,
   toast,
 } from "quickit-ui";
-import { ClipboardList, Cloud, CloudOff, Eye, RefreshCw, Save, Skull } from "lucide-react";
+import { ClipboardList, Cloud, CloudOff, Egg, Eye, RefreshCw, Save, Skull } from "lucide-react";
 import PageTable from "@/components/data/PageTable";
 import FilterDrawer from "@/components/filters/FilterDrawer";
 import ListEmptyState from "@/components/feedback/ListEmptyState";
@@ -27,7 +28,7 @@ import { getSyncQueue, updateRecordInQueue, removeRecordFromQueue } from "@/feat
 import { subscribeSync } from "@/features/sync/syncEngine";
 import { useConfirmDialog } from "@/components/feedback/useConfirmDialog";
 import { buildNameMap, normalizeId } from "@/lib/catalog-utils";
-import { extractDateOnly, formatDateShort, formatDateInput, parseDateInput, formatDateTime } from "@/lib/datetime";
+import { extractDateOnly, formatDateShort, formatDateInput, parseDateInput, formatDateTime, getAgeWeeks } from "@/lib/datetime";
 import { api } from "@/lib/api";
 import { useAuth } from "@/features/auth/AuthContext";
 
@@ -41,13 +42,50 @@ const syncStatusMeta = {
   failed: { label: "Fallido", color: "danger" },
 };
 
+function getRecordEdad(record, catalogs) {
+  const p = record.payload;
+  if (p.edad != null && p.edad !== "" && Number.isFinite(Number(p.edad))) {
+    return Number(p.edad);
+  }
+
+  const fecha = p.fecha;
+  if (!fecha) return null;
+
+  const lot = catalogs.lots.find((item) => normalizeId(item.id) === normalizeId(p.loteId));
+  if (lot?.fechaAlojamiento) {
+    return getAgeWeeks(lot.fechaAlojamiento, fecha);
+  }
+
+  const placement = (catalogs.placements || []).find(
+    (item) =>
+      normalizeId(item.loteId) === normalizeId(p.loteId) &&
+      normalizeId(item.galponId) === normalizeId(p.galponId),
+  );
+  if (placement?.fechaAlojamiento) {
+    return getAgeWeeks(placement.fechaAlojamiento, fecha);
+  }
+
+  const lotPlacements = (catalogs.placements || []).filter(
+    (item) => normalizeId(item.loteId) === normalizeId(p.loteId),
+  );
+  if (lotPlacements.length) {
+    const earliest = lotPlacements.reduce((min, item) => {
+      const value = item.fechaAlojamiento;
+      return !min || (value && value < min) ? value : min;
+    }, null);
+    if (earliest) return getAgeWeeks(earliest, fecha);
+  }
+
+  return null;
+}
+
 export default function HistorialPage() {
   const { accessToken, user: currentUser } = useAuth();
   const { filterCatalogs, filterRecords } = useFarmAccess();
   const { can } = usePermissions();
   const { confirm, ConfirmDialogHost } = useConfirmDialog();
   const [records, setRecords] = useState([]);
-  const [catalogs, setCatalogs] = useState({ farms: [], sheds: [], lots: [] });
+  const [catalogs, setCatalogs] = useState({ farms: [], sheds: [], lots: [], placements: [] });
   const [loading, setLoading] = useState(true);
 
   const canView = can("records.viewDetail");
@@ -321,10 +359,10 @@ export default function HistorialPage() {
             {
               key: "tipo",
               header: "Tipo",
-              cellClassName: "min-w-24 whitespace-nowrap",
+              cellClassName: "w-10 whitespace-nowrap",
               render: (row) => (
-                <Badge color={row.module === "produccion" ? "info" : "warning"} variant="soft">
-                  {row.module === "produccion" ? "Producción" : "Mortalidad"}
+                <Badge color={row.module === "produccion" ? "info" : "warning"} variant="soft" className="size-8 flex items-center justify-center p-0" aria-label={row.module === "produccion" ? "Producción" : "Mortalidad"}>
+                  {row.module === "produccion" ? <Egg size={16} /> : <Skull size={16} />}
                 </Badge>
               ),
             },
@@ -334,13 +372,13 @@ export default function HistorialPage() {
         key: "fecha",
         header: "Fecha",
         sortable: true,
-        cellClassName: "min-w-28 whitespace-nowrap",
+        cellClassName: "min-w-20 whitespace-nowrap",
         render: (row) => formatDateShort(row.payload.fecha),
       },
       {
         key: "ubicacion",
         header: "Ubicación",
-        cellClassName: "min-w-44 whitespace-normal",
+        cellClassName: "min-w-36 whitespace-normal",
         render: (row) => {
           const farmId = normalizeId(row.payload.granjaId);
           const shedId = normalizeId(row.payload.galponId);
@@ -358,24 +396,25 @@ export default function HistorialPage() {
           );
         },
       },
+      {
+        key: "edad",
+        header: "Edad",
+        sortable: true,
+        align: "right",
+        cellClassName: "min-w-16 whitespace-nowrap",
+        render: (row) => {
+          const edad = getRecordEdad(row, catalogs);
+          return <span className="tabular-nums">{edad != null ? `${edad} sem` : "—"}</span>;
+        },
+      },
       ...(isProduccion
         ? [
-            {
-              key: "edad",
-              header: "Semana",
-              sortable: true,
-              align: "right",
-              cellClassName: "min-w-16 whitespace-nowrap",
-              render: (row) => (
-                <span className="tabular-nums">{row.payload.edad ?? "—"} sem</span>
-              ),
-            },
             {
               key: "total",
               header: "Total",
               sortable: true,
               align: "right",
-              cellClassName: "min-w-20 whitespace-nowrap",
+              cellClassName: "min-w-16 whitespace-nowrap",
               render: (row) => {
                 const registros = row.payload.data?.registros || [];
                 const total = registros.reduce((s, r) => s + Number(r.cantidad || 0), 0);
@@ -389,7 +428,7 @@ export default function HistorialPage() {
               header: "Mortalidad",
               sortable: true,
               align: "right",
-              cellClassName: "min-w-24 whitespace-nowrap",
+              cellClassName: "min-w-16 whitespace-nowrap",
               render: (row) => (
                 <span className="font-semibold tabular-nums">
                   {row.payload.data?.mortalidad ?? 0}
@@ -425,32 +464,26 @@ export default function HistorialPage() {
       },
       {
         key: "updatedBy",
-        header: "Modificado Por",
-        cellClassName: "min-w-44 whitespace-normal",
-        headerClassName: "min-w-44",
+        header: "",
+        sortable: true,
+        cellClassName: "w-10",
         render: (row) => {
           const actor = row.payload.audit?.updatedBy;
           const name = actor?.nombre || actor?.username || "—";
           const isCurrentUser = actor && currentUser && String(actor.id) === String(currentUser._id || currentUser.id);
+          const fecha = formatDateTime(row.payload.audit?.updatedAt || row.updatedAt);
           return (
-            <div className="flex items-center gap-2">
-              <UserAvatar
-                user={isCurrentUser ? { ...actor, avatarId: currentUser.avatarId } : actor}
-                nombre={name}
-                size="sm"
-              />
-              <span className="text-sm">{name}</span>
-            </div>
+            <Tooltip content={`${name} · ${fecha}`}>
+              <div className="flex items-center justify-center">
+                <UserAvatar
+                  user={isCurrentUser ? { ...actor, avatarId: currentUser.avatarId } : actor}
+                  nombre={name}
+                  size="sm"
+                />
+              </div>
+            </Tooltip>
           );
         },
-      },
-      {
-        key: "updatedAt",
-        header: "Modificado",
-        sortable: true,
-        cellClassName: "min-w-40 whitespace-nowrap",
-        render: (row) =>
-          formatDateTime(row.payload.audit?.updatedAt || row.updatedAt),
       },
     ];
 
@@ -470,7 +503,7 @@ export default function HistorialPage() {
     }
 
     return cols;
-  }, [catalogMaps, canView, canEdit, canDelete, hasActions, moduleFilter]);
+  }, [catalogMaps, catalogs, canView, canEdit, canDelete, hasActions, moduleFilter]);
 
   function updateEditField(field, value) {
     setEditForm((current) => {
@@ -534,7 +567,7 @@ export default function HistorialPage() {
 
       <ConfirmDialogHost />
 
-      <AppModal open={!!viewRecord} onOpenChange={(open) => { if (!open) setViewRecord(null); }} size="lg">
+      <AppModal open={!!viewRecord} onOpenChange={(open) => { if (!open) setViewRecord(null); }}>
         <AppModal.Content>
           <AppModal.Layout>
             <AppModal.Header>
@@ -556,6 +589,7 @@ export default function HistorialPage() {
               const actorName = actor?.nombre || actor?.username || "—";
               const isCurrentUser = actor && currentUser && String(actor.id) === String(currentUser._id || currentUser.id);
               const meta = syncStatusMeta[viewRecord.syncStatus] || syncStatusMeta.pending;
+              const edad = getRecordEdad(viewRecord, catalogs);
 
               return (
                 <div className="grid gap-4 md:grid-cols-2">
@@ -563,12 +597,12 @@ export default function HistorialPage() {
                     <Label>Fecha</Label>
                     <p className="text-sm">{formatDateShort(p.fecha)}</p>
                   </div>
+                  <div>
+                    <Label>Edad del lote</Label>
+                    <p className="text-sm font-semibold tabular-nums">{edad != null ? `${edad} sem` : "—"}</p>
+                  </div>
                   {isProduccion ? (
                     <>
-                      <div>
-                        <Label>Semana</Label>
-                        <p className="text-sm font-semibold tabular-nums">{p.edad ?? "—"}</p>
-                      </div>
                       <div className="md:col-span-2">
                         <Label>Ubicación</Label>
                         <p className="text-sm">{farm} · {shed} · Lote {lot}</p>
@@ -666,7 +700,7 @@ export default function HistorialPage() {
         </AppModal.Content>
       </AppModal>
 
-      <AppModal open={!!editRecord} onOpenChange={(open) => { if (!open) { setEditRecord(null); setEditForm(null); } }} size="xl">
+      <AppModal open={!!editRecord} onOpenChange={(open) => { if (!open) { setEditRecord(null); setEditForm(null); } }}>
         <AppModal.Content>
           <AppModal.Form onSubmit={handleEditSubmit}>
             <AppModal.Header>
@@ -689,9 +723,17 @@ export default function HistorialPage() {
                 </FormControl>
 
                 {editRecord?.module === "produccion" ? (
-                  <FormControl controlId="edit-semana">
-                    <Label>Semana</Label>
-                    <Input id="edit-semana" value={String(editRecord.payload.edad ?? "—")} disabled />
+                  <FormControl controlId="edit-edad">
+                    <Label>Edad del lote</Label>
+                    <Input
+                      id="edit-edad"
+                      value={
+                        editRecord && editForm
+                          ? String(getRecordEdad(editRecord, catalogs) ?? "—")
+                          : "—"
+                      }
+                      disabled
+                    />
                   </FormControl>
                 ) : (
                   <FormControl controlId="edit-mortalidad" required>

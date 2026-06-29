@@ -52,7 +52,7 @@ export default async function transfersHandler(req, res) {
       }
 
       const rows = await Transfer.find(filter)
-        .populate("loteId", "codigo")
+        .populate("loteId", "codigo fechaAlojamiento")
         .populate("origenGalponId", "nombre")
         .populate("destinoGalponId", "nombre")
         .sort({ fecha: -1, createdAt: -1 })
@@ -75,11 +75,12 @@ export default async function transfersHandler(req, res) {
         mortalidadHembras = 0,
         mortalidadMachos = 0,
         fecha,
-        tipo,
         notas,
       } = req.body;
 
-      if (!loteId || !origenGalponId || !destinoGalponId || !fecha || !tipo) {
+      const tipo = "capitalizacion";
+
+      if (!loteId || !origenGalponId || !destinoGalponId || !fecha) {
         return failure(res, "Faltan campos obligatorios", 400);
       }
 
@@ -93,10 +94,6 @@ export default async function transfersHandler(req, res) {
 
       if (String(origenGalponId) === String(destinoGalponId)) {
         return failure(res, "El galpón de origen y destino deben ser diferentes", 400);
-      }
-
-      if (!["traslado", "capitalizacion"].includes(tipo)) {
-        return failure(res, "Tipo de movimiento inválido", 400);
       }
 
       const parsedFecha = dateOnlyToLocalDate(fecha) || new Date(fecha);
@@ -135,23 +132,21 @@ export default async function transfersHandler(req, res) {
         return failure(res, "No hay un alojamiento activo para este lote en el galpón de origen", 404);
       }
 
-      if (tipo === "capitalizacion") {
-        if (placement.tipo !== "levante") {
-          return failure(res, "Solo se puede capitalizar un alojamiento en fase de levante", 400);
-        }
+      if (placement.tipo !== "levante") {
+        return failure(res, "Solo se puede capitalizar un alojamiento en fase de levante", 400);
+      }
 
-        const lotStartDate = await getLotAgeStartDate(lot._id);
-        const edadSemanas = lotStartDate
-          ? getAgeWeeks(lotStartDate, parsedFecha)
-          : getAgeWeeks(placement.fechaAlojamiento, parsedFecha);
+      const lotStartDate = await getLotAgeStartDate(lot._id);
+      const edadSemanas = lotStartDate
+        ? getAgeWeeks(lotStartDate, parsedFecha)
+        : getAgeWeeks(placement.fechaAlojamiento, parsedFecha);
 
-        if (edadSemanas < CAPITALIZATION_MIN_WEEKS) {
-          return failure(
-            res,
-            `La capitalización requiere al menos ${CAPITALIZATION_MIN_WEEKS} semanas de edad (actual: ${edadSemanas})`,
-            400,
-          );
-        }
+      if (edadSemanas < CAPITALIZATION_MIN_WEEKS) {
+        return failure(
+          res,
+          `La capitalización requiere al menos ${CAPITALIZATION_MIN_WEEKS} semanas de edad (actual: ${edadSemanas})`,
+          400,
+        );
       }
 
       const live = await getPlacementLiveCount(placement, parsedFecha, lot.sexo);
@@ -165,13 +160,13 @@ export default async function transfersHandler(req, res) {
         return failure(res, "Las cantidades trasladadas deben ser números válidos", 400);
       }
       if (qtyHembras <= 0 && qtyMachos <= 0) {
-        return failure(res, "Debes trasladar al menos una hembra o un macho", 400);
+        return failure(res, "Debes capitalizar al menos una hembra o un macho", 400);
       }
       if (qtyHembras > live.hembras) {
-        return failure(res, `No puedes trasladar más hembras de las disponibles (${live.hembras} vivas)`, 400);
+        return failure(res, `No puedes capitalizar más hembras de las disponibles (${live.hembras} vivas)`, 400);
       }
       if (qtyMachos > live.machos) {
-        return failure(res, `No puedes trasladar más machos de los disponibles (${live.machos} vivos)`, 400);
+        return failure(res, `No puedes capitalizar más machos de los disponibles (${live.machos} vivos)`, 400);
       }
       if (mortH > qtyHembras) {
         return failure(res, "La mortalidad de tránsito de hembras no puede ser mayor que las trasladadas", 400);
@@ -183,7 +178,7 @@ export default async function transfersHandler(req, res) {
       const netHembras = qtyHembras - mortH;
       const netMachos = qtyMachos - mortM;
       if (netHembras <= 0 && netMachos <= 0) {
-        return failure(res, "El traslado debe dejar aves vivas en el destino", 400);
+        return failure(res, "La capitalización debe dejar aves vivas en el galpón de postura", 400);
       }
 
       const session = await mongoose.startSession();
@@ -227,12 +222,9 @@ export default async function transfersHandler(req, res) {
           if (destPlacement) {
             destPlacement.hembras += netHembras;
             destPlacement.machos += netMachos;
-            if (tipo === "capitalizacion") {
-              destPlacement.tipo = "postura";
-            }
+            destPlacement.tipo = "postura";
             await destPlacement.save({ session });
           } else {
-            const destPlacementType = tipo === "capitalizacion" ? "postura" : placement.tipo;
             await Placement.create(
               [
                 {
@@ -241,7 +233,7 @@ export default async function transfersHandler(req, res) {
                   hembras: netHembras,
                   machos: netMachos,
                   fechaAlojamiento: parsedFecha,
-                  tipo: destPlacementType,
+                  tipo: "postura",
                   estado: "activo",
                 },
               ],
@@ -249,9 +241,7 @@ export default async function transfersHandler(req, res) {
             );
           }
 
-          if (tipo === "capitalizacion") {
-            await maybeUpdateLotEtapa(lot, session);
-          }
+          await maybeUpdateLotEtapa(lot, session);
         });
       } catch (txError) {
         if (txError.message?.includes("Transaction numbers are only allowed")) {
@@ -336,26 +326,21 @@ async function createTransferWithoutSession({
   if (destPlacement) {
     destPlacement.hembras += netHembras;
     destPlacement.machos += netMachos;
-    if (tipo === "capitalizacion") {
-      destPlacement.tipo = "postura";
-    }
+    destPlacement.tipo = "postura";
     await destPlacement.save();
   } else {
-    const destPlacementType = tipo === "capitalizacion" ? "postura" : placement.tipo;
     await Placement.create({
       loteId: toObjectId(loteId),
       galponId: toObjectId(destinoGalponId),
       hembras: netHembras,
       machos: netMachos,
       fechaAlojamiento: parsedFecha,
-      tipo: destPlacementType,
+      tipo: "postura",
       estado: "activo",
     });
   }
 
-  if (tipo === "capitalizacion") {
-    await maybeUpdateLotEtapa(lot);
-  }
+  await maybeUpdateLotEtapa(lot);
 
   return transfer;
 }

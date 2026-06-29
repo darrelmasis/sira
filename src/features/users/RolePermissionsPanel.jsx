@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Badge, Button, Checkbox, EmptyStateTitle, toast } from "quickit-ui";
-import PageSection from "@/components/layout/PageSection";
+import { Alert, Badge, Button, Checkbox, EmptyStateTitle, Tabs, toast } from "quickit-ui";
 import { Save, Shield } from "lucide-react";
 import { api } from "@/lib/api";
 import {
@@ -16,7 +15,7 @@ export default function RolePermissionsPanel() {
   const { accessToken, applyPermissions } = useAuth();
   const { can } = usePermissions();
   const [loading, setLoading] = useState(true);
-  const [savingRole, setSavingRole] = useState(null);
+  const [saving, setSaving] = useState(false);
   const [rolePermissions, setRolePermissions] = useState([]);
 
   const roleMap = useMemo(
@@ -63,32 +62,39 @@ export default function RolePermissionsPanel() {
     );
   }
 
-  async function saveRole(role) {
-    setSavingRole(role);
-    try {
-      const row = rolePermissions.find((item) => item.role === role);
-      const response = await api("roles/permissions", {
-        method: "PUT",
-        accessToken,
-        body: JSON.stringify({
-          role,
-          permissions: row?.permissions || [],
-        }),
-      });
+  async function saveAllRoles() {
+    setSaving(true);
+    const errors = [];
+    for (const role of ALL_ROLES) {
+      try {
+        const row = rolePermissions.find((item) => item.role === role);
+        const response = await api("roles/permissions", {
+          method: "PUT",
+          accessToken,
+          body: JSON.stringify({
+            role,
+            permissions: row?.permissions || [],
+          }),
+        });
 
-      if (!response.success) {
-        throw new Error(response.message || "No se pudo guardar");
+        if (!response.success) {
+          throw new Error(response.message || `Error en ${getRoleLabel(role)}`);
+        }
+
+        setRolePermissions(response.data.roles);
+        applyPermissions(response.data.map);
+      } catch (error) {
+        errors.push(error.message);
       }
-
-      setRolePermissions(response.data.roles);
-      applyPermissions(response.data.map);
-      toast({ title: `Permisos de ${getRoleLabel(role)} actualizados`, kind: "success" });
-    } catch (error) {
-      toast({ title: error.message, kind: "error" });
-      await loadPermissions();
-    } finally {
-      setSavingRole(null);
     }
+
+    if (errors.length === 0) {
+      toast({ title: "Permisos actualizados", kind: "success" });
+    } else {
+      toast({ title: errors.join(", "), kind: "error" });
+      await loadPermissions();
+    }
+    setSaving(false);
   }
 
   if (!can("roles.manage")) {
@@ -111,53 +117,59 @@ export default function RolePermissionsPanel() {
 
   return (
     <div className="space-y-4">
-      <Alert
-        color="info"
-        title="Permisos por rol"
-        description="Activa o desactiva permisos para cada rol. Los cambios aplican de inmediato para nuevas sesiones."
-      />
 
-      {ALL_ROLES.map((role) => (
-        <PageSection key={role}>
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
+      <Tabs defaultValue={ALL_ROLES[0]} color="brand">
+        <div className="flex items-center justify-between gap-4">
+          <Tabs.List>
+            {ALL_ROLES.map((role) => (
+              <Tabs.Trigger key={role} value={role}>
+                {getRoleLabel(role)}
+              </Tabs.Trigger>
+            ))}
+          </Tabs.List>
+
+          <Button
+            type="button"
+            size="sm"
+            color="brand"
+            loading={saving}
+            loadingText="Guardando..."
+            onClick={saveAllRoles}
+          >
+            <Save aria-hidden="true" className="size-4" />
+            Guardar
+          </Button>
+        </div>
+
+        {ALL_ROLES.map((role) => (
+          <Tabs.Content key={role} value={role} className="pt-4">
+            <div className="mb-4 flex items-center gap-2">
               <Shield aria-hidden="true" className="size-4 text-zinc-400" />
               <EmptyStateTitle className="text-base font-semibold">{getRoleLabel(role)}</EmptyStateTitle>
               <Badge variant="soft" color="neutral">
                 {roleMap[role]?.length || 0} permisos
               </Badge>
             </div>
-            <Button
-              type="button"
-              size="sm"
-              color="brand"
-              loading={savingRole === role}
-              loadingText="Guardando..."
-              onClick={() => saveRole(role)}
-            >
-              <Save aria-hidden="true" className="size-4" />
-              Guardar rol
-            </Button>
-          </div>
 
-          <div className="grid gap-2 sm:grid-cols-2">
-            {Object.entries(PERMISSION_CATALOG).map(([permission, label]) => {
-              const checked = roleMap[role]?.includes(permission) ?? false;
-              const locked = role === ROLES.DESARROLLADOR && permission === "roles.manage";
+            <div className="grid gap-2 sm:grid-cols-2">
+              {Object.entries(PERMISSION_CATALOG).map(([permission, label]) => {
+                const checked = roleMap[role]?.includes(permission) ?? false;
+                const locked = role === ROLES.DESARROLLADOR && permission === "roles.manage";
 
-              return (
-                <Checkbox
-                  key={permission}
-                  label={label}
-                  checked={checked}
-                  disabled={locked}
-                  onCheckedChange={() => !locked && togglePermission(role, permission)}
-                />
-              );
-            })}
-          </div>
-        </PageSection>
-      ))}
+                return (
+                  <Checkbox
+                    key={permission}
+                    label={label}
+                    checked={checked}
+                    disabled={locked}
+                    onCheckedChange={() => !locked && togglePermission(role, permission)}
+                  />
+                );
+              })}
+            </div>
+          </Tabs.Content>
+        ))}
+      </Tabs>
     </div>
   );
 }

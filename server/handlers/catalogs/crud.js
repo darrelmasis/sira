@@ -7,8 +7,8 @@ import { hasPermission } from "../../utils/permissions.js";
 import { buildCatalogFilter, validateFarmAccess } from "../../utils/farmAccess.js";
 import { validateCatalogPayload } from "../../validators/catalogs.js";
 import { success, failure } from "../../utils/response.js";
-import { dateOnlyToLocalDate } from "../../utils/dates.js";
-import { createIntakeMortalityRecords } from "../../utils/inventory.js";
+import { dateOnlyToLocalDate, getAgeWeeks } from "../../utils/dates.js";
+import { createIntakeMortalityRecords, getLotAgeStartDates } from "../../utils/inventory.js";
 
 const RESOURCES = {
   granjas: Farm,
@@ -24,6 +24,7 @@ function serializeCatalogRow(row) {
     id: String(row._id || row.id),
     _id: String(row._id || row.id),
     granjaId: row.granjaId ? String(row.granjaId) : row.granjaId,
+    complejoId: row.complejoId ? String(row.complejoId) : row.complejoId,
     loteId: row.loteId ? String(row.loteId) : row.loteId,
     galponId: row.galponId ? String(row.galponId) : row.galponId,
   };
@@ -99,10 +100,31 @@ export function createCatalogCrudHandler(resource) {
         const rows = await Model.find(filter)
           .sort(resource === "alojamientos" ? { fechaAlojamiento: -1 } : { nombre: 1, codigo: 1 })
           .lean();
+
+        if (resource === "lotes" && rows.length > 0) {
+          const lotIds = rows.map((row) => row._id);
+          const startDates = await getLotAgeStartDates(lotIds);
+
+          return success(
+            res,
+            rows.map((row) => {
+              const serialized = serializeCatalogRow(row);
+              const startDate = startDates.get(String(row._id)) || row.fechaAlojamiento;
+              return {
+                ...serialized,
+                edadSemanas: startDate ? getAgeWeeks(startDate) : null,
+              };
+            }),
+          );
+        }
+
         return success(res, rows.map(serializeCatalogRow));
       }
 
       if (["POST", "PUT", "DELETE"].includes(req.method)) {
+        if (resource === "galpones") {
+          return failure(res, "Los galpones se gestionan desde complejos.", 405);
+        }
         if (!hasPermission(user.role, "catalogs.manage")) {
           return failure(res, "Permiso denegado", 403);
         }
@@ -160,12 +182,12 @@ export function createCatalogCrudHandler(resource) {
 
         if (resource === "alojamientos") {
           const { placementData } = extractPlacementExtras({ ...existing, ...updateData });
-          const doc = await Placement.findByIdAndUpdate(recordId, placementData, { new: true });
+          const doc = await Placement.findByIdAndUpdate(recordId, placementData, { returnDocument: "after" });
           await syncLotFechaAlojamiento(doc.loteId, doc.fechaAlojamiento);
           return success(res, serializeCatalogRow(doc.toObject()));
         }
 
-        const doc = await Model.findByIdAndUpdate(recordId, updateData, { new: true });
+        const doc = await Model.findByIdAndUpdate(recordId, updateData, { returnDocument: "after" });
         return success(res, serializeCatalogRow(doc.toObject()));
       }
 

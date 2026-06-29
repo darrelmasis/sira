@@ -14,6 +14,7 @@ import recordsHandler from "../handlers/records/records.js"
 import transfersHandler from "../handlers/transfers/transfers.js"
 import inventoryHandler from "../handlers/inventory/inventory.js"
 import lotDistributionHandler from "../handlers/lots/distribution.js"
+import complexesHandler from "../handlers/catalogs/complexes.js"
 
 export const ROUTES = {
   "auth/login": {
@@ -68,6 +69,11 @@ export const ROUTES = {
 
   galpones: {
     handler: createCatalogCrudHandler("galpones"),
+    methods: ["GET"],
+  },
+
+  complejos: {
+    handler: complexesHandler,
     methods: ["GET", "POST", "PUT", "DELETE"],
   },
 
@@ -88,7 +94,7 @@ export const ROUTES = {
 
   usuarios: {
     handler: usersHandler,
-    methods: ["GET", "POST", "PUT"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
   },
 
   "roles/permissions": {

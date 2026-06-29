@@ -83,7 +83,7 @@ export async function updateRolePermissions(role, permissions) {
   await RolePermission.findOneAndUpdate(
     { role },
     { $set: { permissions: nextPermissions } },
-    { upsert: true, new: true },
+    { upsert: true, returnDocument: "after" },
   );
 
   const rows = await RolePermission.find().lean();

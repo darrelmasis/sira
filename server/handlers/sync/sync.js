@@ -24,10 +24,6 @@ async function enrichRecord(record) {
     .sort({ fechaAlojamiento: -1 })
     .lean();
 
-  if (record.module === "mortalidad" && !placement) {
-    throw new Error("No hay un alojamiento activo para este lote en el galpón seleccionado");
-  }
-
   const fecha = dateOnlyToLocalDate(record.fecha) || new Date(record.fecha);
   const edad = lotStart
     ? getAgeWeeks(lotStart, fecha)
@@ -123,7 +119,7 @@ export default async function syncHandler(req, res) {
           },
         },
         {
-          new: true,
+          returnDocument: "after",
           upsert: true,
           setDefaultsOnInsert: true,
         },

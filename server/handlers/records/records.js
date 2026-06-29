@@ -156,7 +156,7 @@ export default async function recordsHandler(req, res) {
             "audit.clientCreatedAt": existing.audit?.clientCreatedAt || new Date(),
           },
         },
-        { new: true },
+        { returnDocument: "after" },
       );
 
       return success(res, serializeRecord(updated));

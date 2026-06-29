@@ -13,7 +13,7 @@ import {
   Tabs,
   toast,
 } from "quickit-ui";
-import { Plus, UserPlus, Users } from "lucide-react";
+import { Plus, Trash2, UserPlus, Users } from "lucide-react";
 import { api } from "@/lib/api";
 import { getRoleLabel, ROLES } from "@/features/auth/permissions";
 import { hasGlobalFarmAccess } from "@/features/auth/farmAccess";
@@ -24,6 +24,7 @@ import RolePermissionsPanel from "@/features/users/RolePermissionsPanel";
 import PageTable from "@/components/data/PageTable";
 import AppModal from "@/components/ui/AppModal";
 import RowActionsDropdown from "@/components/ui/RowActionsDropdown";
+import { useConfirmDialog } from "@/components/feedback/useConfirmDialog";
 import { formatDateTime } from "@/lib/datetime";
 
 const roleOptions = Object.values(ROLES);
@@ -41,6 +42,7 @@ const emptyForm = {
 export default function UsersPage() {
   const { accessToken } = useAuth();
   const { can } = usePermissions();
+  const { confirm, ConfirmDialogHost } = useConfirmDialog();
   const canManageUsers = can("users.manage");
   const canManageRoles = can("roles.manage");
   const defaultTab = canManageUsers ? "usuarios" : "permisos";
@@ -100,6 +102,31 @@ export default function UsersPage() {
     setEditing(null);
     setForm(emptyForm);
     setModalOpen(true);
+  }
+
+  async function handleDelete(row) {
+    const confirmed = await confirm({
+      title: "Eliminar usuario",
+      description: `¿Estás seguro de eliminar a "${row.nombre}"? Solo se permite si el usuario no tiene registros asociados (campo, capitalizaciones, etc.). De lo contrario, desactívalo desde Editar.`,
+      confirmLabel: "Eliminar",
+    });
+    if (!confirmed) return;
+
+    try {
+      const response = await api(`usuarios?id=${row.id}`, {
+        method: "DELETE",
+        accessToken,
+      });
+
+      if (!response.success) {
+        throw new Error(response.message || "No se pudo eliminar");
+      }
+
+      toast({ title: "Usuario eliminado", kind: "success" });
+      await loadData();
+    } catch (error) {
+      toast({ title: error.message, kind: "error" });
+    }
   }
 
   function openEdit(row) {
@@ -185,6 +212,15 @@ export default function UsersPage() {
         ) },
       { key: "email", header: "Email", render: (row) => row.email || "—" },
       {
+        key: "active",
+        header: "Estado",
+        render: (row) => (
+          <Badge color={row.active ? "success" : "danger"} variant="soft">
+            {row.active ? "Activo" : "Inactivo"}
+          </Badge>
+        ),
+      },
+      {
         key: "role",
         header: "Rol",
         render: (row) => (
@@ -224,7 +260,11 @@ export default function UsersPage() {
         header: "",
         align: "right",
         render: (row) => (
-          <RowActionsDropdown onEdit={() => openEdit(row)} />
+          <RowActionsDropdown
+            onEdit={() => openEdit(row)}
+            onDelete={() => handleDelete(row)}
+            deleteLabel="Eliminar"
+          />
         ),
       },
     ],
@@ -278,7 +318,7 @@ export default function UsersPage() {
               }
             />
 
-            <AppModal open={modalOpen} onOpenChange={setModalOpen} size="lg">
+            <AppModal open={modalOpen} onOpenChange={setModalOpen}>
               <AppModal.Content>
                 <AppModal.Form onSubmit={handleSubmit}>
                   <AppModal.Header>
@@ -403,6 +443,7 @@ export default function UsersPage() {
           </Tabs.Content>
         )}
       </Tabs>
+      <ConfirmDialogHost />
     </div>
   );
 }
