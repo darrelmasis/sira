@@ -7,8 +7,7 @@
     "dev": "vite",
     "dev:api": "node server/dev-server.js",
     "build": "vite build",
-    "db:seed": "node server/scripts/seed.js",
-    "test:sync": "node server/scripts/test-sync-http.js",
+    "db:seed": "node server/scripts/seed-test-data.js",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -23,13 +22,14 @@
     "lucide-react": "^1.21.0",
     "mongoose": "^9.7.3",
     "nodemailer": "^9.0.1",
-    "quickit-ui": "^1.0.13",
+    "quickit-ui": "^1.0.15",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-hook-form": "^7.80.0",
     "react-router-dom": "^7.18.0",
     "tailwindcss": "^4.3.1",
-    "uuid": "^14.0.1"
+    "uuid": "^14.0.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
