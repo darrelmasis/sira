@@ -28,7 +28,8 @@ export async function api(path, options = {}) {
   try {
     let response = await request(accessToken);
 
-    if (response.status === 401 && refreshTokenFnRef) {
+    const isRefreshRequest = path === "auth/refresh";
+    if (response.status === 401 && refreshTokenFnRef && !isRefreshRequest) {
       const newToken = await refreshTokenFnRef();
       if (newToken) {
         response = await request(newToken);

@@ -2,10 +2,12 @@ import argon2 from "argon2";
 import mongoose from "mongoose";
 import User from "../../models/User.js";
 import Farm from "../../models/Farm.js";
+import FieldRecord from "../../models/FieldRecord.js";
+import Transfer from "../../models/Transfer.js";
 import { requireAuth } from "../../middleware/auth.js";
 import { hasPermission, ensurePermissionsLoaded } from "../../utils/permissions.js";
 import { hasGlobalFarmAccess, normalizeFarmIds } from "../../utils/farmAccess.js";
-import { isValidAvatarId } from "../../constants/avatars.js";
+import { isValidAvatarId, isValidAvatarColorIndex } from "../../constants/avatars.js";
 import { serializeUser } from "../../utils/serializeUser.js";
 import { success, failure } from "../../utils/response.js";
 
@@ -50,7 +52,7 @@ export default async function usersHandler(req, res) {
     }
 
     if (req.method === "POST") {
-      const { username, password, nombre, email, role, granjasAsignadas, active = true, avatarId } = req.body || {};
+      const { username, password, nombre, email, role, granjasAsignadas, active = true, avatarId, avatarColorIndex } = req.body || {};
 
       if (!username?.trim() || !password || !nombre?.trim() || !email?.trim()) {
         return failure(res, "Usuario, contraseña, nombre y email son obligatorios", 400);
@@ -64,6 +66,10 @@ export default async function usersHandler(req, res) {
         return failure(res, "Avatar inválido", 400);
       }
 
+      if (!isValidAvatarColorIndex(avatarColorIndex)) {
+        return failure(res, "Índice de color inválido", 400);
+      }
+
       const assignedFarms = await validateFarmAssignments(role, granjasAsignadas);
       const passwordHash = await argon2.hash(password);
 
@@ -75,10 +81,41 @@ export default async function usersHandler(req, res) {
         role,
         granjasAsignadas: assignedFarms,
         avatarId: avatarId || null,
+        avatarColorIndex: avatarColorIndex ?? null,
         active: Boolean(active),
       });
 
       return success(res, serializeUser(created), 201);
+    }
+
+    if (req.method === "DELETE") {
+      const { id } = req.query || {};
+
+      if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+        return failure(res, "ID de usuario inválido", 400);
+      }
+
+      if (String(user._id) === id) {
+        return failure(res, "No puedes eliminarte a ti mismo", 400);
+      }
+
+      const [recordCount, transferCount] = await Promise.all([
+        FieldRecord.countDocuments({
+          $or: [{ createdBy: id }, { updatedBy: id }],
+        }),
+        Transfer.countDocuments({ createdBy: id }),
+      ]);
+
+      if (recordCount > 0 || transferCount > 0) {
+        return failure(
+          res,
+          `El usuario tiene ${recordCount + transferCount} registro(s) asociado(s). Desactívalo en lugar de eliminarlo.`,
+          409,
+        );
+      }
+
+      await User.findByIdAndDelete(id);
+      return success(res, { message: "Usuario eliminado" });
     }
 
     if (req.method === "PUT") {
@@ -107,6 +144,13 @@ export default async function usersHandler(req, res) {
         update.avatarId = avatarId || null;
       }
 
+      if (avatarColorIndex !== undefined) {
+        if (!isValidAvatarColorIndex(avatarColorIndex)) {
+          return failure(res, "Índice de color inválido", 400);
+        }
+        update.avatarColorIndex = avatarColorIndex;
+      }
+
       if (role) {
         if (!ROLES.includes(role)) {
           return failure(res, "Rol inválido", 400);
@@ -125,7 +169,7 @@ export default async function usersHandler(req, res) {
         update.granjasAsignadas = [];
       }
 
-      const saved = await User.findByIdAndUpdate(id, { $set: update }, { new: true }).select("-passwordHash");
+      const saved = await User.findByIdAndUpdate(id, { $set: update }, { returnDocument: "after" }).select("-passwordHash");
       return success(res, serializeUser(saved));
     }
 

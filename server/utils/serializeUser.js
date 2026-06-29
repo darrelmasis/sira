@@ -8,6 +8,7 @@ export function serializeUser(user) {
     active: user.active,
     granjasAsignadas: (user.granjasAsignadas || []).map((id) => String(id)),
     avatarId: user.avatarId || null,
+    avatarColorIndex: user.avatarColorIndex ?? null,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };

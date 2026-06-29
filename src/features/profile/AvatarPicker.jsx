@@ -5,15 +5,18 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/features/auth/AuthContext";
 import UserAvatar from "@/components/UserAvatar";
 import { POULTRY_AVATARS } from "@/features/profile/poultryAvatars";
+import { AVATAR_COLORS } from "@/features/profile/avatarColors";
 
 export default function AvatarPicker() {
   const { user, accessToken, updateUser } = useAuth();
   const [selectedId, setSelectedId] = useState(user?.avatarId || null);
+  const [selectedColorIndex, setSelectedColorIndex] = useState(user?.avatarColorIndex ?? null);
   const [savingId, setSavingId] = useState(null);
 
   useEffect(() => {
     setSelectedId(user?.avatarId || null);
-  }, [user?.avatarId]);
+    setSelectedColorIndex(user?.avatarColorIndex ?? null);
+  }, [user?.avatarId, user?.avatarColorIndex]);
 
   async function selectAvatar(avatarId) {
     if (selectedId === avatarId) return;
@@ -44,90 +47,169 @@ export default function AvatarPicker() {
     }
   }
 
+  async function handleSelectColor(index) {
+    if (selectedColorIndex === index) return;
+    console.log("[AvatarPicker] handleSelectColor llamado con index:", index, "selectedColorIndex actual:", selectedColorIndex);
+
+    setSelectedColorIndex(index);
+    updateUser({ ...user, avatarColorIndex: index });
+
+    setSavingId("color");
+    try {
+      console.log("[AvatarPicker] Enviando a API:", { avatarColorIndex: index });
+      const response = await api("auth/profile", {
+        method: "PUT",
+        accessToken,
+        body: JSON.stringify({ avatarColorIndex: index }),
+      });
+
+      console.log("[AvatarPicker] Respuesta API:", response);
+
+      if (!response.success) {
+        throw new Error(response.message || "No se pudo guardar el color");
+      }
+
+      console.log("[AvatarPicker] response.data.avatarColorIndex:", response.data?.avatarColorIndex);
+      updateUser(response.data);
+    } catch (error) {
+      console.error("[AvatarPicker] Error:", error);
+      toast({ title: error.message || "Error al guardar color", kind: "error" });
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  const initialsSelected = !selectedId;
+
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
       <div className="flex shrink-0 items-center gap-3 sm:flex-col sm:gap-2">
-        <UserAvatar user={{ ...user, avatarId: selectedId }} size="md" />
+        <UserAvatar user={{ ...user, avatarId: selectedId, avatarColorIndex: selectedColorIndex }} size="md" />
         <FormDescription>Vista previa</FormDescription>
       </div>
 
-      <div className="min-w-0 flex-1">
-        <FormDescription className="mb-2">
-          Toca un avatar para cambiarlo
-        </FormDescription>
-        <div className="flex flex-wrap gap-1.5">
-          <Tooltip
-            content="Usar iniciales"
-            color="brand"
-          >
-            <Button
-              type="button"
-              variant="ghost"
-              color="neutral"
-              shape="circle"
-              size="sm"
-              aria-label="Usar iniciales"
-              aria-pressed={!selectedId}
-              disabled={Boolean(savingId)}
-              loading={savingId === "initials"}
-              className={cn(
-                "size-9 min-w-9 p-0 text-[11px] font-semibold",
-                !selectedId &&
-                  "scale-110 bg-brand-500/15 text-brand-700 dark:text-brand-300",
-              )}
-              onClick={() => selectAvatar(null)}
+      <div className="min-w-0 flex-1 space-y-4">
+        <div>
+          <FormDescription className="mb-2">
+            Toca un avatar para cambiarlo
+          </FormDescription>
+          <div className="flex flex-wrap gap-1.5">
+            <Tooltip
+              content="Usar iniciales"
+              color="brand"
             >
-              {(user?.nombre || user?.username || "?")
-                .split(" ")
-                .map((part) => part[0])
-                .join("")
-                .slice(0, 2)
-                .toUpperCase()}
-            </Button>
-          </Tooltip>
-
-          {POULTRY_AVATARS.map((avatar) => {
-            const isSelected = selectedId === avatar.id;
-            const isSaving = savingId === avatar.id;
-
-            return (
-              <Tooltip
-                content={avatar.label}
-                color={isSelected ? "success" : "neutral"}
-                key={avatar.id}
+              <Button
+                type="button"
+                variant="ghost"
+                color="neutral"
+                shape="circle"
+                size="sm"
+                aria-label="Usar iniciales"
+                aria-pressed={initialsSelected}
+                disabled={Boolean(savingId)}
+                loading={savingId === "initials"}
+                className={cn(
+                  "size-9 min-w-9 p-0 text-[11px] font-semibold",
+                  initialsSelected &&
+                    "scale-110 bg-brand-500/15 text-brand-700 dark:text-brand-300",
+                )}
+                onClick={() => selectAvatar(null)}
               >
-                <Button
+                {(user?.nombre || user?.username || "?")
+                  .split(" ")
+                  .map((part) => part[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase()}
+              </Button>
+            </Tooltip>
+
+            {POULTRY_AVATARS.map((avatar) => {
+              const isSelected = selectedId === avatar.id;
+              const isSaving = savingId === avatar.id;
+
+              return (
+                <Tooltip
+                  content={avatar.label}
+                  color={isSelected ? "success" : "neutral"}
                   key={avatar.id}
-                  type="button"
-                  variant="ghost"
-                  color="neutral"
-                  shape="circle"
-                  size="sm"
-                  aria-label={avatar.label}
-                  aria-pressed={isSelected}
-                  disabled={Boolean(savingId)}
-                  loading={isSaving}
-                  className={cn(
-                    "relative size-9 min-w-9 overflow-hidden p-0 transition-all duration-150 hover:scale-120",
-                    isSelected
-                      ? "scale-130 shadow-md"
-                      : "opacity-90 hover:opacity-100",
-                  )}
-                  onClick={() => selectAvatar(avatar.id)}
                 >
-                  <avatar.Component className="h-full w-full" />
-                  {isSelected && (
-                    <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-brand-500/20">
-                      <span className="rounded-full bg-brand-500 p-0.5 text-white">
-                        <Check aria-hidden="true" className="size-3" />
+                  <Button
+                    key={avatar.id}
+                    type="button"
+                    variant="ghost"
+                    color="neutral"
+                    shape="circle"
+                    size="sm"
+                    aria-label={avatar.label}
+                    aria-pressed={isSelected}
+                    disabled={Boolean(savingId)}
+                    loading={isSaving}
+                    className={cn(
+                      "relative size-9 min-w-9 overflow-hidden p-0 transition-all duration-150 hover:scale-120",
+                      isSelected
+                        ? "scale-130 shadow-md"
+                        : "opacity-90 hover:opacity-100",
+                    )}
+                    onClick={() => selectAvatar(avatar.id)}
+                  >
+                    <avatar.Component className="h-full w-full" />
+                    {isSelected && (
+                      <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-brand-500/20">
+                        <span className="rounded-full bg-brand-500 p-0.5 text-white">
+                          <Check aria-hidden="true" className="size-3" />
+                        </span>
                       </span>
-                    </span>
-                  )}
-                </Button>
-              </Tooltip>
-            );
-          })}
+                    )}
+                  </Button>
+                </Tooltip>
+              );
+            })}
+          </div>
         </div>
+
+        {initialsSelected && (
+          <div>
+            <FormDescription className="mb-2">
+              Color de las iniciales
+            </FormDescription>
+            <div className="flex flex-wrap gap-1.5">
+              {AVATAR_COLORS.map((color, index) => {
+                const isSelected = selectedColorIndex === index;
+
+                return (
+                  <button
+                    key={index}
+                    type="button"
+                    aria-label={`Color ${index + 1}`}
+                    disabled={Boolean(savingId)}
+                    className={cn(
+                      "relative flex size-8 min-w-8 items-center justify-center rounded-full p-0 transition-all duration-150 cursor-pointer",
+                      isSelected && "scale-130 shadow-md ring-2 ring-white dark:ring-zinc-900 ring-offset-2",
+                      Boolean(savingId) && "cursor-not-allowed opacity-60",
+                    )}
+                    style={{ backgroundColor: color.bg }}
+                    onClick={() => handleSelectColor(index)}
+                  >
+                    {isSelected && (
+                      <Check
+                        aria-hidden="true"
+                        className="size-4 drop-shadow-sm"
+                        style={{ color: color.text }}
+                      />
+                    )}
+                    {!isSelected && (
+                      <span
+                        className="size-4 rounded-full"
+                        style={{ backgroundColor: color.bg }}
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

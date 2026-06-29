@@ -49,6 +49,12 @@ const UserSchema = new mongoose.Schema(
       trim: true,
     },
 
+    avatarColorIndex: {
+      type: Number,
+      default: null,
+      min: 0,
+    },
+
     passwordResetTokenHash: {
       type: String,
       default: null,
