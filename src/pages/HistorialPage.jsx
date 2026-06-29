@@ -435,6 +435,21 @@ export default function HistorialPage() {
                 </span>
               ),
             },
+            {
+              key: "sexo",
+              header: "Sexo",
+              cellClassName: "min-w-12 whitespace-nowrap",
+              render: (row) => {
+                const sexo = row.payload.data?.sexo;
+                if (!sexo) return "—";
+                const Icon = sexo === "hembra" ? Venus : Mars;
+                return (
+                  <span className="inline-flex items-center gap-1">
+                    <Icon size={16} className={sexo === "hembra" ? "text-pink-500" : "text-sky-500"} />
+                  </span>
+                );
+              },
+            },
           ]),
       {
         key: "syncStatus",
