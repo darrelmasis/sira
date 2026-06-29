@@ -13,7 +13,7 @@ import {
   Tooltip,
   toast,
 } from "quickit-ui";
-import { ClipboardList, Cloud, CloudOff, Egg, Eye, RefreshCw, Save, Skull } from "lucide-react";
+import { ClipboardList, Cloud, CloudOff, Egg, Eye, Mars, RefreshCw, Save, Skull, Venus } from "lucide-react";
 import PageTable from "@/components/data/PageTable";
 import FilterDrawer from "@/components/filters/FilterDrawer";
 import ListEmptyState from "@/components/feedback/ListEmptyState";
@@ -647,7 +647,16 @@ export default function HistorialPage() {
                       </div>
                       <div>
                         <Label>Sexo</Label>
-                        <p className="text-sm capitalize">{p.data?.sexo || "macho"}</p>
+                        {(() => {
+                          const sexo = p.data?.sexo || "macho";
+                          const Icon = sexo === "hembra" ? Venus : Mars;
+                          return (
+                            <p className="text-sm capitalize inline-flex items-center gap-1">
+                              <Icon size={16} className={sexo === "hembra" ? "text-pink-500" : "text-sky-500"} />
+                              {sexo === "hembra" ? "Hembra" : "Macho"}
+                            </p>
+                          );
+                        })()}
                       </div>
                       <div>
                         <Label>Estado de sincronización</Label>

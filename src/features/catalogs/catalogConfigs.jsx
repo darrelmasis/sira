@@ -1,5 +1,5 @@
 import { FormControl, FormDescription, Input, Label, Select, DatePicker } from "quickit-ui";
-import { Building2, Layers, MapPin } from "lucide-react";
+import { Building2, Layers, MapPin, Mars, Venus } from "lucide-react";
 import { api } from "@/lib/api";
 import {
   isDuplicateCode,
@@ -254,7 +254,16 @@ export const lotCatalogConfig = {
       render: (row) => labelForId(meta.farms, row.granjaId, "nombre", "Sin granja"),
     },
     { key: "raza", header: "Raza", render: (row) => row.raza },
-    { key: "sexo", header: "Sexo", render: (row) => <span className="capitalize">{row.sexo}</span> },
+    { key: "sexo", header: "Sexo", render: (row) => {
+      const sexo = row.sexo;
+      const Icon = sexo === "hembra" ? Venus : Mars;
+      return (
+        <span className="inline-flex items-center gap-1 capitalize">
+          <Icon size={16} className={sexo === "hembra" ? "text-pink-500" : "text-sky-500"} />
+          {sexo === "hembra" ? "Hembra" : "Macho"}
+        </span>
+      );
+    } },
     { key: "etapa", header: "Etapa", render: (row) => <span className="capitalize font-semibold text-brand-600">{row.etapa || "levante"}</span> },
     {
       key: "edad",

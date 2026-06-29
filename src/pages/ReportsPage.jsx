@@ -5,7 +5,7 @@ import {
   Select,
   toast,
 } from "quickit-ui";
-import { FileSpreadsheet, FileText, Play, History, SearchX, Download } from "lucide-react";
+import { FileSpreadsheet, FileText, Play, History, SearchX, Download, Mars, Venus } from "lucide-react";
 import * as XLSX from "xlsx";
 import PageTable from "@/components/data/PageTable";
 import ListEmptyState from "@/components/feedback/ListEmptyState";
@@ -305,8 +305,18 @@ export default function ReportsPage() {
       cols.push({
         key: "sexo",
         header: "Sexo",
-        cellClassName: "min-w-14 whitespace-nowrap capitalize",
-        render: (row) => row.payload.data?.sexo || "—",
+        cellClassName: "min-w-14 whitespace-nowrap",
+        render: (row) => {
+          const sexo = row.payload.data?.sexo;
+          if (!sexo) return "—";
+          const Icon = sexo === "hembra" ? Venus : Mars;
+          return (
+            <span className="inline-flex items-center gap-1 capitalize">
+              <Icon size={16} className={sexo === "hembra" ? "text-pink-500" : "text-sky-500"} />
+              {sexo === "hembra" ? "Hembra" : "Macho"}
+            </span>
+          );
+        },
       });
       cols.push({
         key: "causaMuerte",
