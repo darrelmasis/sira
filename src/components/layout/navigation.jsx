@@ -70,24 +70,34 @@ export function NavSection({ title, items, can, defaultOpen }) {
   if (visible.length === 0) return null;
 
   return (
-    <div className="space-y-0.5">
+    <div>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+        className={cn(
+          "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wider transition-colors",
+          open
+            ? "text-brand-600 dark:text-brand-400"
+            : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300",
+        )}
       >
-        {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-        {title}
+        {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        <span>{title}</span>
+        <span className="ml-auto text-[10px] font-normal text-zinc-300 dark:text-zinc-600">{visible.length}</span>
       </button>
-      {open && visible.map((item) => {
-        const Icon = item.icon;
-        return (
-          <NavLink key={item.to} to={item.to} end={item.end} className={navLinkClass}>
-            <Icon aria-hidden="true" className="size-4 shrink-0" />
-            <span>{item.label}</span>
-          </NavLink>
-        );
-      })}
+      {open && (
+        <div className="mt-0.5 space-y-0.5 border-l-2 border-brand-200 pl-2 dark:border-brand-900">
+          {visible.map((item) => {
+            const Icon = item.icon;
+            return (
+              <NavLink key={item.to} to={item.to} end={item.end} className={navLinkClass}>
+                <Icon aria-hidden="true" className="size-4 shrink-0" />
+                <span>{item.label}</span>
+              </NavLink>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
