@@ -2,6 +2,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import { useBreakpoint } from "quickit-ui";
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
+import FloatingQuickAccess from "@/components/layout/FloatingQuickAccess";
 import { getPageMeta } from "@/components/layout/navigation";
 import { useAuth } from "@/features/auth/AuthContext";
 import { usePermissions } from "@/features/auth/permissions";
@@ -42,6 +43,8 @@ export default function AppShell() {
           <Outlet />
         </main>
       </div>
+
+      <FloatingQuickAccess />
     </div>
   );
 }
