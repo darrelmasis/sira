@@ -31,13 +31,12 @@ export default function FloatingQuickAccess() {
           const openDelay = (visible.length - i) * 60;
           const closeDelay = (i + 1) * 40;
           return (
-            <Button
+            <button
               key={item.to}
               type="button"
-              variant="ghost"
               onClick={() => { setOpen(false); navigate(item.to); }}
               className={cn(
-                "absolute left-1/2 top-1/2 z-10 flex size-12 items-center justify-center rounded-full p-0 text-white shadow-lg",
+                "absolute left-1/2 top-1/2 z-10 flex h-12 w-12 items-center justify-center rounded-full text-white shadow-lg",
                 item.bg,
               )}
               style={{
@@ -51,7 +50,7 @@ export default function FloatingQuickAccess() {
               title={item.label}
             >
               <Icon size={20} strokeWidth={2.5} />
-            </Button>
+            </button>
           );
         })}
 
