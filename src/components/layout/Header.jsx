@@ -30,8 +30,8 @@ export default function Header({ user, can, roleLabel, logout, summary }) {
   }
 
   return (
-    <header className="sticky top-0 z-40 bg-white/90 backdrop-blur dark:bg-zinc-950/90">
-      <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 border-b border-zinc-200/80 px-4 dark:border-zinc-800">
+    <header className="sticky top-0 z-40 h-14 border-b border-zinc-200/80 bg-white/90 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90">
+      <div className="mx-auto flex h-full max-w-7xl items-center gap-3 px-4">
         <div className="flex items-center gap-2 lg:w-56">
           {isMobile && (
             <Drawer
