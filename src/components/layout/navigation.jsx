@@ -1,7 +1,6 @@
-import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { cn } from "quickit-ui";
-import { ChevronDown, ChevronRight, ClipboardList, Database, Egg, FileSpreadsheet, History, Layers, LayoutGrid, Settings, Skull, Users } from "lucide-react";
+import { ClipboardList, Database, Egg, FileSpreadsheet, History, Layers, LayoutGrid, Settings, Skull, Users } from "lucide-react";
 
 export const primaryNav = [
   { to: "/", label: "Inicio", icon: LayoutGrid, end: true },
@@ -64,49 +63,34 @@ export function getPageMeta(pathname) {
   return { title: current?.label || "SIRA", subtitle: "" };
 }
 
-export function NavSection({ title, items, can, defaultOpen }) {
+export function NavSection({ title, items, can }) {
   const visible = items.filter((item) => isNavItemVisible(item, can));
-  const [open, setOpen] = useState(defaultOpen ?? false);
   if (visible.length === 0) return null;
 
   return (
-    <div>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className={cn(
-          "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-wider transition-colors",
-          open
-            ? "text-brand-600 dark:text-brand-400"
-            : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300",
-        )}
-      >
-        {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        <span>{title}</span>
-        <span className="ml-auto text-[10px] font-normal text-zinc-300 dark:text-zinc-600">{visible.length}</span>
-      </button>
-      {open && (
-        <div className="mt-0.5 space-y-0.5 border-l-2 border-brand-200 pl-2 dark:border-brand-900">
-          {visible.map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink key={item.to} to={item.to} end={item.end} className={navLinkClass}>
-                <Icon aria-hidden="true" className="size-4 shrink-0" />
-                <span>{item.label}</span>
-              </NavLink>
-            );
-          })}
+    <div className="space-y-1">
+      {title && (
+        <div className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+          {title}
         </div>
       )}
+      {visible.map((item) => {
+        const Icon = item.icon;
+        return (
+          <NavLink key={item.to} to={item.to} end={item.end} className={navLinkClass}>
+            <Icon aria-hidden="true" className="size-4 shrink-0" />
+            <span>{item.label}</span>
+          </NavLink>
+        );
+      })}
     </div>
   );
 }
 
 export function SidebarNav({ can, onNavigate }) {
   return (
-    <nav className="space-y-1" onClick={onNavigate}>
-      <NavSection title="Principal" items={primaryNav} can={can} defaultOpen={true} />
-      <NavSection title="Captura de datos" items={captureNav} can={can} />
+    <nav className="space-y-3" onClick={onNavigate}>
+      <NavSection title="Principal" items={primaryNav} can={can} />
       <NavSection title="Consultas" items={queriesNav} can={can} />
       <NavSection title="Administración" items={adminNav} can={can} />
     </nav>
