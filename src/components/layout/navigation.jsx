@@ -1,10 +1,10 @@
 import { NavLink } from "react-router-dom";
 import { cn } from "quickit-ui";
-import { ClipboardList, Database, Egg, FileSpreadsheet, History, Layers, LayoutGrid, Settings, Skull, Users } from "lucide-react";
+import { Egg, FileSpreadsheet, Layers, LayoutGrid, Skull } from "lucide-react";
 
 export const primaryNav = [
   { to: "/", label: "Inicio", icon: LayoutGrid, end: true },
-  { to: "/inventario", label: "Inventario", icon: ClipboardList, permission: "inventory.view" },
+  { to: "/reportes", label: "Reportes", icon: FileSpreadsheet },
 ];
 
 export const captureNav = [
@@ -13,16 +13,9 @@ export const captureNav = [
   { to: "/capitalizacion", label: "Capitalización", icon: Layers, permission: "transfers.create" },
 ];
 
-export const queriesNav = [
-  { to: "/historial", label: "Historial", icon: History },
-  { to: "/reportes", label: "Reportes", icon: FileSpreadsheet },
-];
+export const queriesNav = [];
 
-export const adminNav = [
-  { to: "/catalogos", label: "Catálogos", icon: Database, permission: "catalogs.manage" },
-  { to: "/usuarios", label: "Usuarios", icon: Users, anyPermission: ["users.manage", "roles.manage"] },
-  { to: "/sistema", label: "Sistema", icon: Settings, permission: "settings.view" },
-];
+export const adminNav = [];
 
 export const pageMeta = {
   "/": { title: "Inicio", subtitle: "Accede rápidamente a las funcionalidades más importantes" },
@@ -88,12 +81,20 @@ export function NavSection({ title, items, can }) {
 }
 
 export function SidebarNav({ can, onNavigate }) {
+  const sections = [
+    { title: "Principal", items: primaryNav },
+    { title: "Captura de datos", items: captureNav },
+    { title: "Consultas", items: queriesNav },
+    { title: "Administración", items: adminNav },
+  ].filter((s) => s.items.some((item) => isNavItemVisible(item, can)));
+
+  if (sections.length === 0) return null;
+
   return (
     <nav className="space-y-1" onClick={onNavigate}>
-      <NavSection title="Principal" items={primaryNav} can={can} />
-      <NavSection title="Captura de datos" items={captureNav} can={can} />
-      <NavSection title="Consultas" items={queriesNav} can={can} />
-      <NavSection title="Administración" items={adminNav} can={can} />
+      {sections.map((s) => (
+        <NavSection key={s.title} title={s.title} items={s.items} can={can} />
+      ))}
     </nav>
   );
 }
