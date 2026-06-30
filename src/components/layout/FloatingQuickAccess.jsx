@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { cn } from "quickit-ui";
+import { Button, cn } from "quickit-ui";
 import { Egg, Layers, Plus, Skull, X } from "lucide-react";
 import { usePermissions } from "@/features/auth/permissions";
 
@@ -21,9 +21,10 @@ export default function FloatingQuickAccess() {
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
       {visible.map((item) => (
-        <button
+        <Button
           key={item.to}
           type="button"
+          variant="ghost"
           onClick={() => { setOpen(false); navigate(item.to); }}
           className={cn(
             "flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium shadow-lg transition-all duration-200",
@@ -37,16 +38,19 @@ export default function FloatingQuickAccess() {
         >
           <item.icon size={18} />
           <span>{item.label}</span>
-        </button>
+        </Button>
       ))}
-      <button
+      <Button
         type="button"
+        variant="solid"
+        color="brand"
+        shape="square"
         onClick={() => setOpen((v) => !v)}
-        className="flex size-14 items-center justify-center rounded-full bg-brand-600 text-white shadow-lg transition-all duration-300 hover:bg-brand-700 active:scale-95"
+        className="size-14 rounded-full shadow-lg transition-all duration-300 active:scale-95"
       >
         <X size={24} className={cn("transition-transform duration-300", open ? "rotate-0 scale-100" : "rotate-90 scale-0 absolute")} />
         <Plus size={24} className={cn("transition-transform duration-300", open ? "rotate-90 scale-0 absolute" : "rotate-0 scale-100")} />
-      </button>
+      </Button>
     </div>
   );
 }
