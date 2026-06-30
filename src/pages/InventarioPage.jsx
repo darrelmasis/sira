@@ -100,10 +100,7 @@ export default function InventarioPage() {
         header: "Hembras Vivas",
         align: "right",
         render: (row) => (
-          <div className="flex flex-col items-end">
-            <span className="tabular-nums font-bold text-zinc-950 dark:text-zinc-50">{row.hembras}</span>
-            <span className="text-xxs text-zinc-400 dark:text-zinc-500 tabular-nums">Inic: {row.detalles?.inicialHembras}</span>
-          </div>
+          <span className="tabular-nums text-zinc-800 dark:text-zinc-200">{row.hembras}</span>
         ),
       },
       {
@@ -111,17 +108,14 @@ export default function InventarioPage() {
         header: "Machos Vivos",
         align: "right",
         render: (row) => (
-          <div className="flex flex-col items-end">
-            <span className="tabular-nums font-bold text-zinc-950 dark:text-zinc-50">{row.machos}</span>
-            <span className="text-xxs text-zinc-400 dark:text-zinc-500 tabular-nums">Inic: {row.detalles?.inicialMachos}</span>
-          </div>
+          <span className="tabular-nums text-zinc-800 dark:text-zinc-200">{row.machos}</span>
         ),
       },
       {
         key: "total",
         header: "Total Vivas",
         align: "right",
-        render: (row) => <span className="tabular-nums font-extrabold text-brand-600 dark:text-brand-400">{row.hembras + row.machos}</span>,
+        render: (row) => <span className="tabular-nums font-semibold text-brand-600 dark:text-brand-400">{row.hembras + row.machos}</span>,
       },
       {
         key: "acciones",
@@ -185,11 +179,6 @@ export default function InventarioPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-950 dark:text-zinc-50">Inventario de Aves</h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">Existencias de aves vivas estimadas en tiempo real por alojamiento activo.</p>
-        </div>
-
         <div className="flex items-center gap-2">
           {farms.length > 1 && (
             <FormControl controlId="farmFilter" className="w-56">
@@ -207,20 +196,22 @@ export default function InventarioPage() {
 
           <Button
             variant="ghost"
+            shape="square"
+            color="neutral"
             onClick={() => fetchInventory(true)}
             disabled={refreshing || loading}
           >
             <RotateCw className={`size-4 ${refreshing ? "animate-spin" : ""}`} />
           </Button>
 
-          {can("transfers.create") && (
+          {/* {can("transfers.create") && (
             <Button
               color="brand"
               onClick={() => navigate("/capitalizacion")}
             >
               Capitalizar lote
             </Button>
-          )}
+          )} */}
         </div>
       </div>
 

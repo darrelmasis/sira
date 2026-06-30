@@ -17,14 +17,22 @@ export default function AppShell() {
 
   return (
     <div className="min-h-screen bg-zinc-100 text-zinc-950 dark:bg-zinc-950 dark:text-zinc-50">
-      <Header user={user} can={can} roleLabel={roleLabel} logout={logout} summary={summary} />
+      <Header
+        user={user}
+        can={can}
+        roleLabel={roleLabel}
+        logout={logout}
+        summary={summary}
+      />
 
-      <div className="mx-auto flex min-h-[calc(100vh-3.5rem)] max-w-7xl">
+      <div className="mx-auto flex min-h-[calc(100dvh-56px)] max-w-7xl">
         {!isMobile && <Sidebar can={can} />}
 
         <main className="min-w-0 flex-1 px-3 py-4 sm:px-4 sm:py-6">
           <div className="mb-4 sm:mb-6">
-            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{title}</h1>
+            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
+              {title}
+            </h1>
             {subtitle && (
               <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400 sm:mt-1">
                 {subtitle}

@@ -3,8 +3,8 @@ import { Skeleton } from "quickit-ui";
 export default function AuthLoadingShell() {
   return (
     <div className="min-h-screen bg-zinc-100 text-zinc-950 dark:bg-zinc-950 dark:text-zinc-50">
-      <header className="sticky top-0 z-40 border-b border-zinc-200/80 bg-white/90 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90">
-        <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4">
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur dark:bg-zinc-950/90">
+        <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 border-b border-zinc-200/80 px-4 dark:border-zinc-800">
           <Skeleton variant="line" className="h-6 w-16" />
           <div className="ml-auto flex items-center gap-2">
             <Skeleton variant="rect" className="h-7 w-24 rounded-full" />

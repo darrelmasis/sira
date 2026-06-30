@@ -45,7 +45,6 @@ html.dark {
 body {
   min-width: 320px;
   color: var(--color-zinc-900);
-  scrollbar-gutter: stable;
 }
 
 .dark body {

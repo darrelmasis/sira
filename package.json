@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host",
     "dev:api": "node server/dev-server.js",
     "build": "vite build",
     "db:seed": "node server/scripts/seed-test-data.js",
