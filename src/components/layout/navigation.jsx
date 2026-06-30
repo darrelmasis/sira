@@ -1,10 +1,11 @@
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { cn } from "quickit-ui";
-import { Egg, FileSpreadsheet, Layers, LayoutGrid, Skull } from "lucide-react";
+import { ChevronDown, ChevronRight, ClipboardList, Database, Egg, FileSpreadsheet, History, Layers, LayoutGrid, Settings, Skull, Users } from "lucide-react";
 
 export const primaryNav = [
   { to: "/", label: "Inicio", icon: LayoutGrid, end: true },
-  { to: "/reportes", label: "Reportes", icon: FileSpreadsheet },
+  { to: "/inventario", label: "Inventario", icon: ClipboardList, permission: "inventory.view" },
 ];
 
 export const captureNav = [
@@ -13,9 +14,16 @@ export const captureNav = [
   { to: "/capitalizacion", label: "Capitalización", icon: Layers, permission: "transfers.create" },
 ];
 
-export const queriesNav = [];
+export const queriesNav = [
+  { to: "/historial", label: "Historial", icon: History },
+  { to: "/reportes", label: "Reportes", icon: FileSpreadsheet },
+];
 
-export const adminNav = [];
+export const adminNav = [
+  { to: "/catalogos", label: "Catálogos", icon: Database, permission: "catalogs.manage" },
+  { to: "/usuarios", label: "Usuarios", icon: Users, anyPermission: ["users.manage", "roles.manage"] },
+  { to: "/sistema", label: "Sistema", icon: Settings, permission: "settings.view" },
+];
 
 export const pageMeta = {
   "/": { title: "Inicio", subtitle: "Accede rápidamente a las funcionalidades más importantes" },
@@ -56,18 +64,22 @@ export function getPageMeta(pathname) {
   return { title: current?.label || "SIRA", subtitle: "" };
 }
 
-export function NavSection({ title, items, can }) {
+export function NavSection({ title, items, can, defaultOpen }) {
   const visible = items.filter((item) => isNavItemVisible(item, can));
+  const [open, setOpen] = useState(defaultOpen ?? false);
   if (visible.length === 0) return null;
 
   return (
-    <div className="space-y-1">
-      {title && (
-        <div className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
-          {title}
-        </div>
-      )}
-      {visible.map((item) => {
+    <div className="space-y-0.5">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+      >
+        {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+        {title}
+      </button>
+      {open && visible.map((item) => {
         const Icon = item.icon;
         return (
           <NavLink key={item.to} to={item.to} end={item.end} className={navLinkClass}>
@@ -81,20 +93,12 @@ export function NavSection({ title, items, can }) {
 }
 
 export function SidebarNav({ can, onNavigate }) {
-  const sections = [
-    { title: "Principal", items: primaryNav },
-    { title: "Captura de datos", items: captureNav },
-    { title: "Consultas", items: queriesNav },
-    { title: "Administración", items: adminNav },
-  ].filter((s) => s.items.some((item) => isNavItemVisible(item, can)));
-
-  if (sections.length === 0) return null;
-
   return (
     <nav className="space-y-1" onClick={onNavigate}>
-      {sections.map((s) => (
-        <NavSection key={s.title} title={s.title} items={s.items} can={can} />
-      ))}
+      <NavSection title="Principal" items={primaryNav} can={can} defaultOpen={true} />
+      <NavSection title="Captura de datos" items={captureNav} can={can} />
+      <NavSection title="Consultas" items={queriesNav} can={can} />
+      <NavSection title="Administración" items={adminNav} can={can} />
     </nav>
   );
 }
