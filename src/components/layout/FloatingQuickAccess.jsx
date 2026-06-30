@@ -4,10 +4,12 @@ import { Button, cn } from "quickit-ui";
 import { Egg, Layers, Plus, Skull, X } from "lucide-react";
 import { usePermissions } from "@/features/auth/permissions";
 
-const ITEMS = [
-  { to: "/mortalidad", label: "Mortalidad", icon: Skull, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-900", angle: 180 },
-  { to: "/produccion", label: "Producción", icon: Egg, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-900", angle: 225 },
-  { to: "/capitalizacion", label: "Capitalización", icon: Layers, color: "text-sky-600 dark:text-sky-400", bg: "bg-sky-100 dark:bg-sky-900", angle: 270, permission: "transfers.create" },
+const RADIUS = 80;
+
+const items = [
+  { to: "/mortalidad", label: "Mortalidad", icon: Skull, color: "bg-amber-500 hover:bg-amber-600", angle: 180 },
+  { to: "/produccion", label: "Producción", icon: Egg, color: "bg-emerald-500 hover:bg-emerald-600", angle: 225 },
+  { to: "/capitalizacion", label: "Capitalización", icon: Layers, color: "bg-sky-500 hover:bg-sky-600", angle: 270, permission: "transfers.create" },
 ];
 
 export default function FloatingQuickAccess() {
@@ -15,35 +17,37 @@ export default function FloatingQuickAccess() {
   const navigate = useNavigate();
   const { can } = usePermissions();
 
-  const visible = ITEMS.filter((i) => !i.permission || can(i.permission));
+  const visible = items.filter((i) => !i.permission || can(i.permission));
   if (visible.length === 0) return null;
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
       <div className="relative size-14">
         {visible.map((item, i) => {
+          const rad = (item.angle * Math.PI) / 180;
+          const x = Math.cos(rad) * RADIUS;
+          const y = Math.sin(rad) * RADIUS;
           const Icon = item.icon;
           return (
             <Button
               key={item.to}
               type="button"
-              variant="ghost"
               onClick={() => { setOpen(false); navigate(item.to); }}
               className={cn(
-                "absolute left-1/2 top-1/2 z-10 flex size-12 items-center justify-center rounded-full p-0 shadow-md",
-                item.bg,
+                "absolute left-1/2 top-1/2 z-10 flex size-12 items-center justify-center rounded-full p-0 text-white shadow-lg",
                 item.color,
               )}
-              title={item.label}
               style={{
                 transform: open
-                  ? `translate(-50%, -50%) rotate(${item.angle}deg) translateX(-76px) rotate(-${item.angle}deg)`
-                  : "translate(-50%, -50%) rotate(0deg) translateX(0px) rotate(0deg)",
-                transition: `transform 0.4s cubic-bezier(.34,1.56,.64,1) ${i * 70}ms, opacity 0.3s ease ${i * 70}ms`,
+                  ? `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`
+                  : "translate(-50%, -50%)",
+                transition: `transform 0.3s cubic-bezier(.34,1.56,.64,1) ${i * 70}ms, opacity 0.25s ease ${i * 70}ms`,
                 opacity: open ? 1 : 0,
+                pointerEvents: open ? "auto" : "none",
               }}
+              title={item.label}
             >
-              <Icon size={20} />
+              <Icon size={20} strokeWidth={2.5} />
             </Button>
           );
         })}
@@ -57,24 +61,8 @@ export default function FloatingQuickAccess() {
           className="absolute left-0 top-0 z-20 size-14 rounded-full shadow-lg transition-transform duration-200 active:scale-90"
         >
           <span className="relative flex size-full items-center justify-center">
-            <X
-              size={24}
-              className={cn(
-                "absolute transition-all duration-300",
-                open
-                  ? "rotate-0 scale-100 opacity-100"
-                  : "rotate-90 scale-0 opacity-0",
-              )}
-            />
-            <Plus
-              size={24}
-              className={cn(
-                "absolute transition-all duration-300",
-                open
-                  ? "rotate-90 scale-0 opacity-0"
-                  : "rotate-0 scale-100 opacity-100",
-              )}
-            />
+            <X size={24} className={cn("absolute transition-transform duration-300", open ? "rotate-0 scale-100" : "rotate-90 scale-0")} />
+            <Plus size={24} className={cn("absolute transition-transform duration-300", open ? "rotate-90 scale-0" : "rotate-0 scale-100")} />
           </span>
         </Button>
       </div>
